@@ -1,0 +1,339 @@
+<!doctype html>
+<!--
+  Tokenomics Terminology: two views (Glossary / KPIs) over one versioned mindmap YAML.
+  =====================================================================
+  DATA: reads a PINNED version of tokenomics_mindmap.yaml (data/v0.0.2/...).
+        Override with ?data=<url> for local review of an unreleased YAML.
+        The tokenomics_mindmap repo is only ever referenced by named version.
+  DEEP LINKS: no query strings in links; clean paths, host rewrites them to
+        this file (WordPress rule or the repo demo server):
+        /terminology, /terminology/<slug>, /kpi, /kpi/<slug>.
+        Opened via file:// links fall back to #<slug> and the toggle swaps
+        modes in place.
+  OFFLINE/SHARE: served over HTTP the pinned YAML auto-loads; opened from
+        disk (file://, remote network share) fetch is blocked and the page
+        falls back to a one-time YAML file picker.
+  WORDPRESS: the whole te-terminology div block pastes into one Custom
+        HTML block on a te_page (one page = one URL). CSS is ID-scoped; the
+        outer <html>/<head> exist only for standalone GitHub Pages hosting.
+  VERSION: 0.1.0 mockup, 2026-10-05. Owner: Definitions WG.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tokenomics Terminology · Tokenomics Foundation</title>
+<link rel="icon" href="assets/tf-icon.png" />
+<script src="vendor/js-yaml.min.js"></script>
+</head>
+<body style="margin:0;background:#0a0b0f;">
+<div id="te-terminology" data-brand="tf">
+<style>
+  #te-terminology {
+    --tfg-brand: var(--color-brand-primary, #4f7cff);
+    --tfg-brand2: var(--color-brand-secondary, #6b93ff);
+    --tfg-ground: var(--color-surface-dark, #0a0b0f);
+    --tfg-card: #17171b;
+    --tfg-band: #1e1f25;
+    --tfg-border: rgba(255,255,255,.07);
+    --tfg-text: #fff;
+    --tfg-muted: rgba(255,255,255,.8);
+    --tfg-subtle: rgba(255,255,255,.52);
+    --tfg-kpi: #56c39a;
+    --tfg-concept: #6b93ff;
+    background: var(--tfg-ground); color: var(--tfg-text);
+    font: 400 16px/1.6 "Inter", system-ui, sans-serif;
+    padding: 40px 24px 80px; box-sizing: border-box;
+    position: relative;
+  }
+  #te-terminology .tfg-wrap { max-width: 980px; margin: 0 auto; }
+  #te-terminology .tfg-eyebrow { font: 600 12px "JetBrains Mono", ui-monospace, monospace; letter-spacing: 1.2px; text-transform: uppercase; color: var(--tfg-brand); margin: 0 0 10px; }
+  #te-terminology .tfg-h1 { font: 600 34px/1.15 "Inter Tight", "Inter", sans-serif; letter-spacing: -0.025em; margin: 0 0 8px; }
+  #te-terminology .tfg-lede { color: var(--tfg-muted); max-width: 640px; margin: 0 0 26px; font-size: 15.5px; }
+  #te-terminology .tfg-lede a { color: var(--tfg-brand2); }
+  #te-terminology .tfg-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 22px; }
+  #te-terminology .tfg-toggle { display: inline-flex; border: 1px solid var(--tfg-border); border-radius: 10px; overflow: hidden; }
+  #te-terminology .tfg-togbtn { appearance: none; border: 0; background: transparent; color: var(--tfg-subtle); font: 600 13.5px "Inter", sans-serif; padding: 9px 18px; cursor: pointer; text-decoration: none; }
+  #te-terminology .tfg-togbtn.on { background: var(--tfg-brand); color: #fff; }
+  #te-terminology .tfg-search { flex: 1; min-width: 180px; background: var(--tfg-card); border: 1px solid var(--tfg-border); border-radius: 10px; color: var(--tfg-text); font: 400 14px "Inter", sans-serif; padding: 9px 14px; box-sizing: border-box; }
+  #te-terminology .tfg-count { color: var(--tfg-subtle); font: 400 13px "JetBrains Mono", ui-monospace, monospace; }
+  #te-terminology .tfg-alpha { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 26px; }
+  #te-terminology .tfg-alpha a { font: 600 12px "JetBrains Mono", ui-monospace, monospace; color: var(--tfg-subtle); text-decoration: none; padding: 3px 7px; border-radius: 6px; border: 1px solid transparent; }
+  #te-terminology .tfg-alpha a:hover { color: #fff; border-color: var(--tfg-border); background: var(--tfg-card); }
+  #te-terminology .tfg-letter { font: 600 20px "Inter Tight", "Inter", sans-serif; color: var(--tfg-brand2); border-bottom: 1px solid var(--tfg-border); padding: 18px 0 6px; margin: 8px 0 4px; letter-spacing: -0.02em; }
+  #te-terminology .tfg-entry { border-bottom: 1px solid var(--tfg-border); padding: 14px 10px; border-radius: 8px; }
+  #te-terminology .tfg-entry.hit { background: var(--tfg-band); border: 1px solid var(--tfg-brand); }
+  #te-terminology .tfg-kpi.hit { outline: 2px solid var(--tfg-brand); background: var(--tfg-band); }
+  #te-terminology .tfg-term { font: 600 17px "Inter", sans-serif; margin: 0 0 2px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  #te-terminology .tfg-termlink { color: #fff; text-decoration: none; cursor: pointer; border-bottom: 1px dotted var(--tfg-subtle); }
+  #te-terminology .tfg-termlink:hover { color: var(--tfg-brand2); border-bottom-color: var(--tfg-brand2); }
+  #te-terminology .tfg-badge { font: 600 10.5px "JetBrains Mono", ui-monospace, monospace; letter-spacing: .8px; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; border: 1px solid; }
+  #te-terminology .tfg-badge.kpi { color: var(--tfg-kpi); border-color: var(--tfg-kpi); }
+  #te-terminology .tfg-badge.concept { color: var(--tfg-concept); border-color: var(--tfg-concept); }
+  #te-terminology .tfg-path { font: 400 12px "JetBrains Mono", ui-monospace, monospace; color: var(--tfg-subtle); margin: 0 0 5px; }
+  #te-terminology .tfg-path b { color: var(--tfg-muted); font-weight: 600; }
+  #te-terminology .tfg-def { color: var(--tfg-muted); font-size: 14.5px; margin: 0; max-width: 720px; }
+  #te-terminology .tfg-links { margin: 6px 0 0; }
+  #te-terminology .tfg-links a { font: 500 12.5px "JetBrains Mono", ui-monospace, monospace; color: var(--tfg-brand2); text-decoration: none; margin-right: 14px; }
+  #te-terminology .tfg-links a:hover { text-decoration: underline; }
+  #te-terminology .tfg-branch { color: inherit; text-decoration: none; }
+  #te-terminology .tfg-kpigrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+  #te-terminology .tfg-kpi { background: var(--tfg-card); border: 1px solid var(--tfg-border); border-left: 3px solid var(--tfg-kpi); border-radius: 10px; padding: 14px 16px; }
+  #te-terminology .tfg-kpi .tfg-term { font-size: 15.5px; }
+  #te-terminology .tfg-foot { margin: 34px 0 0; color: var(--tfg-subtle); font-size: 12.5px; border-top: 1px solid var(--tfg-border); padding-top: 16px; }
+  #te-terminology .tfg-foot a { color: var(--tfg-brand2); }
+  #te-terminology .tfg-err { background: var(--tfg-card); border: 1px solid #ff6b7a; border-radius: 10px; padding: 16px; color: #ff6b7a; font: 400 14px "JetBrains Mono", ui-monospace, monospace; white-space: pre-wrap; }
+  #te-terminology .tfg-muted { color: var(--tfg-muted); font-size: 14.5px; }
+  #te-terminology .tfg-pickbtn { appearance: none; border: 1px solid var(--tfg-brand); background: var(--tfg-brand); color: #fff; font: 600 14px "Inter", sans-serif; border-radius: 10px; padding: 10px 20px; cursor: pointer; margin-top: 6px; }
+</style>
+<div class="tfg-wrap">
+  <p class="tfg-eyebrow">Tokenomics Foundation · Definitions Working Group</p>
+  <h1 class="tfg-h1" id="tfg-title">Terminology</h1>
+  <p class="tfg-lede">Every term and metric from the Tokenomics mind map, flattened for reading and review. Data is pinned to a named version of the map; the canonical interactive view lives in <a id="tfg-maplink" href="https://tokenomics-foundation.github.io/tokenomics_mindmap/mindmap.html">the mind map viewer</a>.</p>
+  <div class="tfg-bar">
+    <span class="tfg-toggle">
+      <a id="tfg-btn-gloss" class="tfg-togbtn" href="terminology">Glossary</a>
+      <a id="tfg-btn-kpi" class="tfg-togbtn" href="kpi">KPIs</a>
+    </span>
+    <input id="tfg-q" class="tfg-search" type="search" placeholder="Search terms, paths, descriptions" />
+    <span class="tfg-count" id="tfg-count"></span>
+  </div>
+  <nav class="tfg-alpha" id="tfg-alpha" aria-label="Alphabet"></nav>
+  <div id="tfg-body"><p class="tfg-count">Loading <span id="tfg-src"></span> …</p></div>
+  <p class="tfg-foot">Published by the Tokenomics Foundation as an open, vendor-neutral resource. CC BY 4.0.<br />
+  Term of the week? Every entry has its own URL: <code>/terminology/&lt;slug&gt;</code>, KPIs at <code>/kpi/&lt;slug&gt;</code>.</p>
+</div>
+</div>
+<script>
+(function () {
+  "use strict";
+  var ROOT = document.getElementById("te-terminology");
+  if (!ROOT) return;
+  /* When a host serves this file at /terminology/<slug>, relative script tags
+     resolve under /terminology/ and miss vendor/. If js-yaml did not load,
+     retry it one level up, then boot. */
+  if (typeof jsyaml === "undefined") {
+    var s = document.createElement("script");
+    s.src = "../vendor/js-yaml.min.js";
+    s.onload = boot;
+    s.onerror = function () { showNoYaml(); };
+    document.head.appendChild(s);
+    return;
+  }
+  boot();
+  function showNoYaml() {
+    var b = ROOT.querySelector("#tfg-body");
+    if (b) b.innerHTML = '<p class="tfg-err">js-yaml could not load from vendor/ or ../vendor/.</p>';
+  }
+  function boot() {
+  /* URL model: no query strings in any link.
+       /terminology            glossary
+       /terminology/<slug>     glossary focused on one entry
+       /kpi                    KPI cards
+       /kpi/<slug>             one KPI focused
+     The host (WordPress rewrite / this repo's demo server rule) serves this
+     file for all four forms; the slug is read from the path.
+     Opened from file:// (network-share review), links degrade to #<slug>
+     hashes and the toggle switches mode in place. */
+  var DATA_VERSION = "v0.0.2";
+  var pathname = location.pathname.replace(/\/+$/, "");
+  var isFile = location.protocol === "file:";
+  var pm = pathname.match(/^(.*?)\/(terminology|kpi)(?:\/([^/]+))?$/);
+  var BASE = pm ? pm[1] : pathname.replace(/\/[^/]*$/, "");
+  var mode = pm && pm[2] === "kpi" ? "kpi" : "gloss";
+  var wantTerm = (pm && pm[3] ? decodeURIComponent(pm[3])
+    : decodeURIComponent(location.hash || "").replace(/^#/, "")) || "";
+  function viewBase(v) { return (BASE || "") + "/" + v; }
+  var viewDir = mode === "kpi" ? "kpi" : "terminology";
+  function termHref(slug) {
+    return isFile ? "#" + encodeURIComponent(slug)
+      : viewBase(viewDir) + "/" + encodeURIComponent(slug);
+  }
+  function modeHref(v) { return isFile ? null : viewBase(v); }
+  var params = new URLSearchParams(location.search);
+  /* Candidate locations for the vendored YAML, tried in order: relative
+     (normal hosting) and one level up (when a host serves this file at the
+     /terminology/<slug> path, whose base dir is /terminology/). */
+  var DATA_CANDIDATES = [params.get("data")].filter(Boolean)
+    .concat(["data/", "../data/"])
+    .map(function (d) { return d + (d.indexOf("://") !== -1 || d.charAt(d.length - 1) === "/" ? "" : "/") + DATA_VERSION + "/tokenomics_mindmap.yaml"; });
+
+  var body = ROOT.querySelector("#tfg-body"),
+      alpha = ROOT.querySelector("#tfg-alpha"),
+      count = ROOT.querySelector("#tfg-count"),
+      qEl = ROOT.querySelector("#tfg-q"),
+      btnG = ROOT.querySelector("#tfg-btn-gloss"),
+      btnK = ROOT.querySelector("#tfg-btn-kpi");
+  ROOT.querySelector("#tfg-src").textContent = "mind map " + DATA_VERSION;
+  var TERMS = [];
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function slug(s) {
+    return String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  }
+  function branchOf(path) { return path.split(" > ")[1] || path; }
+
+  function flatten(node, path) {
+    TERMS.push({
+      name: node.name,
+      path: path,
+      branch: branchOf(path),
+      type: node.type || "Concept",
+      desc: node.description || "",
+      links: node.links || [],
+      slug: slug(path.replace(/ > /g, " "))
+    });
+    var ch = node.children;
+    if (ch && typeof ch === "object") {
+      Object.keys(ch).forEach(function (k) {
+        flatten({ name: k, description: ch[k] && ch[k].Description, links: ch[k] && ch[k].Links, type: ch[k] && ch[k].Type, children: ch[k] && ch[k].children }, path + " > " + k);
+      });
+    }
+  }
+
+  function syncToggle() {
+    btnG.classList.toggle("on", mode === "gloss");
+    btnK.classList.toggle("on", mode === "kpi");
+    var hg = modeHref("terminology"), hk = modeHref("kpi");
+    if (hg) btnG.setAttribute("href", hg);
+    if (hk) btnK.setAttribute("href", hk);
+    ROOT.querySelector("#tfg-title").textContent = mode === "kpi" ? "Key Performance Indicators" : "Terminology";
+    alpha.style.display = mode === "kpi" ? "none" : "flex";
+  }
+
+  function matches(t, q) {
+    if (!q) return true;
+    return (t.name + " " + t.path + " " + t.desc).toLowerCase().indexOf(q) !== -1;
+  }
+
+  function badge(t) {
+    var k = t.type.toUpperCase() === "KPI";
+    return '<span class="tfg-badge ' + (k ? "kpi" : "concept") + '">' + esc(t.type) + "</span>";
+  }
+  function pathHtml(t) {
+    var parts = t.path.split(" > ");
+    return parts.map(esc).join(" <b>&rsaquo;</b> ");
+  }
+  function linksHtml(t) {
+    if (!t.links.length) return "";
+    return '<p class="tfg-links">' + t.links.map(function (l) {
+      var host = String(l).replace(/^https?:\/\//, "").split("/")[0];
+      return '<a href="' + esc(l) + '" target="_blank" rel="noopener">' + esc(host) + "</a>";
+    }).join("") + "</p>";
+  }
+  function entryHtml(t) {
+    return '<div class="tfg-entry" id="tfg-' + esc(t.slug) + '" data-name="' + esc(t.name) + '">' +
+      '<p class="tfg-term"><a class="tfg-termlink" href="' + esc(termHref(t.slug)) + '">' + esc(t.name) + "</a> " + badge(t) + "</p>" +
+      '<p class="tfg-path">' + pathHtml(t) + "</p>" +
+      '<p class="tfg-def">' + esc(t.desc) + "</p>" +
+      linksHtml(t) + "</div>";
+  }
+
+  function render() {
+    var q = (qEl.value || "").trim().toLowerCase();
+    var set = TERMS.filter(function (t) {
+      var typed = mode === "kpi" ? t.type.toUpperCase() === "KPI" : true;
+      return typed && matches(t, q);
+    });
+    count.textContent = set.length + (mode === "kpi" ? " KPIs" : " terms") + (q ? " (filtered)" : "");
+    if (mode === "kpi") {
+      body.innerHTML = '<div class="tfg-kpigrid">' + set.map(function (t) {
+        return '<div class="tfg-kpi" id="tfg-' + esc(t.slug) + '"><p class="tfg-term"><a class="tfg-termlink" href="' + esc(termHref(t.slug)) + '">' + esc(t.name) + "</a></p>" +
+          '<p class="tfg-path">' + esc(t.branch) + "</p><p class=\"tfg-def\">" + esc(t.desc) + "</p>" + linksHtml(t) + "</div>";
+      }).join("") + "</div>";
+      alpha.innerHTML = "";
+      return;
+    }
+    var sorted = set.slice().sort(function (a, b) { return a.name.localeCompare(b.name); });
+    var html = "", letter = "";
+    sorted.forEach(function (t) {
+      var L = (t.name[0] || "#").toUpperCase();
+      if (!/[A-Z]/.test(L)) L = "#";
+      if (L !== letter) { letter = L; html += '<div class="tfg-letter" id="tfg-letter-' + L + '">' + L + "</div>"; }
+      html += entryHtml(t);
+    });
+    body.innerHTML = html;
+    var letters = {};
+    sorted.forEach(function (t) {
+      var L = (t.name[0] || "#").toUpperCase();
+      if (!/[A-Z]/.test(L)) L = "#";
+      letters[L] = 1;
+    });
+    alpha.innerHTML = "ABCDEFGHIJKLMNOPQRSTUVWXYZ#".split("").filter(function (L) { return letters[L]; })
+      .map(function (L) { return '<a href="#tfg-letter-' + L + '">' + L + "</a>"; }).join("");
+  }
+
+  function focusTerm(s) {
+    var t = TERMS.filter(function (x) { return x.slug === s; })[0];
+    if (!t) return;
+    render();
+    var el = document.getElementById("tfg-" + s);
+    if (el) {
+      el.classList.add("hit");
+      el.scrollIntoView({ block: "center" });
+      setTimeout(function () { el.classList.remove("hit"); }, 5000);
+    }
+  }
+
+  btnG.addEventListener("click", function (ev) {
+    if (mode === "gloss" || !isFile) return;  /* real links navigate */
+    ev.preventDefault();
+    mode = "gloss"; syncToggle(); render();
+  });
+  btnK.addEventListener("click", function (ev) {
+    if (mode === "kpi" || !isFile) return;
+    ev.preventDefault();
+    mode = "kpi"; syncToggle(); render();
+  });
+  var deb;
+  qEl.addEventListener("input", function () { clearTimeout(deb); deb = setTimeout(render, 120); });
+  if (isFile) {
+    window.addEventListener("hashchange", function () {
+      focusTerm(decodeURIComponent((location.hash || "").replace(/^#/, "")));
+    });
+  }
+
+  function start(text) {
+    var root = jsyaml.load(text);
+    var k = Object.keys(root)[0];
+    flatten({ name: k, description: (root[k] && root[k].Description) || "", type: "Concept", links: [], children: (root[k] && root[k].children) || {} }, k);
+    syncToggle();
+    render();
+    if (wantTerm) focusTerm(wantTerm);
+  }
+
+  /* Remote-share friendly: fetch works when served over HTTP(S); when the
+     page is opened from disk (file://) the fetch is blocked, so fall back to
+     a one-time file picker for the pinned YAML (same pattern as the mind map
+     viewer). */
+  function offerFilePick(why) {
+    body.innerHTML =
+      '<div class="tfg-loaderr"><p class="tfg-err">Auto-load of the pinned mind map YAML failed: ' + esc(why) + "</p>" +
+      '<p class="tfg-muted">Pick <code>tokenomics_mindmap.yaml</code> once (any version) to keep reading:</p>' +
+      '<button id="tfg-pick" class="tfg-pickbtn" type="button">Choose YAML file</button></div>';
+    var inp = document.createElement("input");
+    inp.type = "file"; inp.accept = ".yaml,.yml,text/yaml"; inp.style.display = "none";
+    ROOT.appendChild(inp);
+    document.getElementById("tfg-pick").addEventListener("click", function () { inp.click(); });
+    inp.addEventListener("change", function () {
+      var f = inp.files[0];
+      if (!f) return;
+      var fr = new FileReader();
+      fr.onload = function () { try { start(String(fr.result)); } catch (e2) { body.innerHTML = '<p class="tfg-err">' + esc(e2.message) + "</p>"; } };
+      fr.readAsText(f);
+    });
+  }
+
+  function loadCandidate(i) {
+    if (i >= DATA_CANDIDATES.length) { offerFilePick("no vendored YAML found"); return; }
+    fetch(DATA_CANDIDATES[i], { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+      .then(start)
+      .catch(function () { loadCandidate(i + 1); });
+  }
+  loadCandidate(0);
+  }
+})();
+</script>
+</body>
+</html>

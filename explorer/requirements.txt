@@ -1,0 +1,5 @@
+# Mind Map Explorer server (Python 3.11+)
+mcp>=2.3,<3      # MCP Python SDK 2.x: mcp.server.mcpserver.MCPServer (FastMCP was renamed in 2.x)
+httpx            # OpenAI-compatible chat-completions calls to the model endpoint
+PyYAML           # mind map data loader
+uvicorn          # ASGI server for the Starlette app MCPServer.streamable_http_app() builds

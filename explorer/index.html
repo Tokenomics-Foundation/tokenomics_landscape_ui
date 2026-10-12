@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<!--
+  Tokenomics Mind Map Explorer: minimal chat UI over the mind map MCP server.
+  Served by server.py at / on :8789. Answers come from a local model whose only
+  tools are the MCP server's tools; the right panel shows each MCP call live.
+  Term links open the :8788 glossary demo at /terminology/<slug>.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mind Map Explorer · Tokenomics Foundation</title>
+<link rel="icon" href="assets/tf-icon.png" />
+<style>
+  :root {
+    --brand: #4f7cff; --brand2: #6b93ff; --ground: #0a0b0f; --card: #17171b; --band: #1e1f25;
+    --border: rgba(255,255,255,.08); --text: #fff; --muted: rgba(255,255,255,.8); --subtle: rgba(255,255,255,.52);
+    --kpi: #56c39a; --mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--text); font: 400 16px/1.6 "Inter", system-ui, sans-serif; }
+  header { padding: 22px 28px 14px; border-bottom: 1px solid var(--border); display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+  header img { height: 30px; }
+  .eyebrow { font: 600 12px var(--mono); letter-spacing: 1.2px; text-transform: uppercase; color: var(--brand); margin: 0; }
+  h1 { font: 600 24px/1.2 "Inter Tight", "Inter", sans-serif; margin: 2px 0 0; letter-spacing: -0.02em; }
+  .meta { margin-left: auto; color: var(--subtle); font: 400 12.5px var(--mono); text-align: right; }
+  main { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr); height: calc(100vh - 79px); }
+  #chat { display: flex; flex-direction: column; border-right: 1px solid var(--border); min-height: 0; }
+  #log { flex: 1; overflow-y: auto; padding: 24px 28px; }
+  .msg { max-width: 760px; margin: 0 0 18px; }
+  .msg.user { margin-left: auto; background: var(--band); border: 1px solid var(--border); border-radius: 12px 12px 2px 12px; padding: 10px 14px; width: fit-content; }
+  .msg.bot { color: var(--muted); }
+  .msg.bot p { margin: 0 0 10px; }
+  .msg a.term { color: var(--brand2); text-decoration: none; border-bottom: 1px dotted var(--brand2); font-weight: 600; }
+  .msg a.term:hover { color: #fff; }
+  .thinking { color: var(--subtle); font: 400 13px var(--mono); }
+  .intro { color: var(--muted); max-width: 680px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .chip { border: 1px solid var(--border); background: var(--card); color: var(--muted); border-radius: 999px; padding: 6px 13px; font-size: 13.5px; cursor: pointer; }
+  .chip:hover { border-color: var(--brand); color: #fff; }
+  form { display: flex; gap: 10px; padding: 16px 28px 22px; border-top: 1px solid var(--border); }
+  #q { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font: 400 15px "Inter", sans-serif; padding: 12px 14px; }
+  #q:focus { outline: none; border-color: var(--brand); }
+  button.send { border: 0; background: var(--brand); color: #fff; font: 600 14px "Inter", sans-serif; border-radius: 10px; padding: 0 22px; cursor: pointer; }
+  button.send:disabled { opacity: .5; cursor: default; }
+  #model { background: var(--card); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font: 500 13.5px "Inter", sans-serif; padding: 0 10px; max-width: 230px; }
+  button.ghost { border: 1px solid var(--border); background: transparent; color: var(--subtle); font: 600 13px "Inter", sans-serif; border-radius: 10px; padding: 0 14px; cursor: pointer; }
+  button.ghost:hover { color: #fff; border-color: var(--brand); }
+  .cmp { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; max-width: none; }
+  .ans { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+  .who { font: 600 12px var(--mono); color: var(--brand2); margin: 0 0 8px; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .who .stats { color: var(--subtle); font-weight: 400; }
+  .msg.bot .who { margin-bottom: 6px; }
+  aside h3 { font: 600 12px var(--mono); color: var(--brand2); margin: 14px 0 8px; }
+  aside { overflow-y: auto; padding: 20px 22px; background: #0d0e13; }
+  aside h2 { font: 600 12px var(--mono); letter-spacing: 1.2px; text-transform: uppercase; color: var(--subtle); margin: 0 0 12px; }
+  .call { background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--kpi); border-radius: 8px; padding: 10px 12px; margin: 0 0 10px; font: 400 12.5px/1.5 var(--mono); }
+  .call b { color: var(--kpi); }
+  .call .args { color: var(--muted); word-break: break-word; }
+  .call .res { color: var(--subtle); margin-top: 6px; white-space: pre-wrap; word-break: break-word; }
+  .call details summary { cursor: pointer; color: var(--subtle); margin-top: 4px; }
+  .connect { margin-top: 26px; border-top: 1px solid var(--border); padding-top: 18px; }
+  .connect p { color: var(--muted); font-size: 13.5px; margin: 0 0 8px; }
+  .connect pre { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font: 400 12px/1.5 var(--mono); color: var(--muted); overflow-x: auto; margin: 0 0 10px; }
+  .toolist { color: var(--subtle); font: 400 12px var(--mono); margin: 0; padding-left: 18px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; height: auto; } #log { min-height: 60vh; } }
+</style>
+</head>
+<body>
+<header>
+  <img src="assets/tf-logo.svg" alt="Tokenomics Foundation" />
+  <div>
+    <p class="eyebrow">Definitions Working Group · Sprint 2 demo</p>
+    <h1>Mind Map Explorer</h1>
+  </div>
+  <div class="meta" id="meta">connecting…</div>
+</header>
+<main>
+  <section id="chat">
+    <div id="log">
+      <div class="intro">
+        <p>Describe an idea in your own words, even if you do not know what it is called. The guide searches the Tokenomics mind map through its MCP server and tells you which term fits and where it sits under Production, Consumption, or Value. Each term links to its glossary page.</p>
+        <div class="chips" id="chips"></div>
+      </div>
+    </div>
+    <form id="f" autocomplete="off">
+      <select id="model" title="Local model"><option>loading models…</option></select>
+      <input id="q" placeholder="e.g. we keep paying again for the same long system prompt on every request" />
+      <button class="send" id="send">Ask</button>
+      <button type="button" class="ghost" id="reset" title="Clear the conversation">New</button>
+    </form>
+  </section>
+  <aside>
+    <h2>MCP tool calls</h2>
+    <div id="trace"><p class="thinking">Calls for the latest answer appear here.</p></div>
+    <div class="connect">
+      <h2>Use it from your own agent</h2>
+      <p>Same server, Streamable HTTP transport:</p>
+      <pre id="mcpurl"></pre>
+      <pre id="mcpcfg"></pre>
+      <p>Tools exposed:</p>
+      <ul class="toolist" id="tools"></ul>
+    </div>
+  </aside>
+</main>
+<script>
+(function () {
+  var log = document.getElementById("log"), trace = document.getElementById("trace"),
+      q = document.getElementById("q"), send = document.getElementById("send"),
+      sel = document.getElementById("model");
+  var COMPARE = "__compare__";
+  var MODELS = [];      /* [{id,label}] from /api/info, refreshed on focus of the picker */
+  var threads = {};     /* model id -> [{role, content}]: each model keeps its own conversation */
+  var glossaryBase = location.protocol + "//" + location.hostname + ":8788";
+  var EXAMPLES = [
+    "We keep paying again for the same long system prompt on every request",
+    "How much of our AI bill is the model versus the GPUs underneath it?",
+    "Is fine-tuning an open weights model production or consumption?",
+    "What metrics show whether our coding assistant is worth it?"
+  ];
+  var mcpUrl = location.origin + "/mcp";
+  document.getElementById("mcpurl").textContent = mcpUrl;
+  document.getElementById("mcpcfg").textContent = JSON.stringify(
+    { mcpServers: { "tokenomics-mindmap": { type: "http", url: mcpUrl } } }, null, 2);
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function render(text) {
+    var h = esc(text)
+      .replace(/\[\[([a-z0-9-]+)\|([^\]]+)\]\]?/g, function (_, s, n) {  /* tolerate a dropped closing bracket */
+        return '<a class="term" target="_blank" href="' + glossaryBase + "/terminology/" + s + '">' + n + "</a>";
+      })
+      .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+    return h.split(/\n{2,}/).map(function (p) { return "<p>" + p.replace(/\n/g, "<br>") + "</p>"; }).join("");
+  }
+  function add(role, html, cls) {
+    var d = document.createElement("div");
+    d.className = "msg " + role + (cls ? " " + cls : ""); d.innerHTML = html;
+    log.appendChild(d); log.scrollTop = log.scrollHeight; return d;
+  }
+  function label(id) {
+    var m = MODELS.filter(function (x) { return x.id === id; })[0];
+    return m ? m.label : id;
+  }
+  function summarize(r) {
+    if (r && r.results) return r.count + " results: " + r.results.slice(0, 5).map(function (x) { return x.name; }).join(", ");
+    if (r && r.path) return r.path;
+    if (r && r.kpis) return r.count + " KPIs";
+    if (r && r.branches) return r.branches.map(function (b) { return b.name; }).join(", ");
+    return typeof r === "string" ? r.slice(0, 200) : "";
+  }
+  function traceHtml(t) {
+    if (!t.length) return '<p class="thinking">No tool calls for this answer.</p>';
+    return t.map(function (c, i) {
+      return '<div class="call"><b>' + (i + 1) + ". " + esc(c.tool) + '</b> <span class="args">' + esc(JSON.stringify(c.args)) + "</span>" +
+        '<div class="res">' + esc(summarize(c.result)) + "</div>" +
+        "<details><summary>raw result</summary><div class=\"res\">" + esc(JSON.stringify(c.result, null, 1)).slice(0, 4000) + "</div></details></div>";
+    }).join("");
+  }
+  function stats(d) {
+    var u = d.usage || {};
+    return d.elapsed_s + "s · " + (d.trace || []).length + " calls · " +
+      ((u.prompt_tokens || 0) + (u.completion_tokens || 0)) + " tok (" + (u.completion_tokens || 0) + " out)";
+  }
+  function head(id, st) {
+    return '<div class="who"><span>' + esc(label(id)) + '</span><span class="stats">' + (st || "searching the map…") + "</span></div>";
+  }
+
+  /* One model, one turn. Resolves to {id, d} or {id, err}. */
+  function run(id, box) {
+    var th = threads[id] = threads[id] || [];
+    return fetch("api/chat", { method: "POST", headers: { "Content-Type": "application/json" },
+                               body: JSON.stringify({ messages: th, model: id }) })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (d) {
+        box.innerHTML = head(id, esc(stats(d))) + render(d.reply || "(no answer)");
+        th.push({ role: "assistant", content: d.reply || "" });
+        return { id: id, d: d };
+      })
+      .catch(function (e) {
+        box.innerHTML = head(id, "error") + '<span class="thinking">Error: ' + esc(e.message) + "</span>";
+        th.pop();  /* drop the unanswered user turn so the thread stays valid */
+        return { id: id, err: e };
+      });
+  }
+
+  function ask(text) {
+    if (!text.trim() || !MODELS.length) return;
+    var ids = sel.value === COMPARE ? MODELS.map(function (m) { return m.id; }) : [sel.value];
+    add("user", esc(text));
+    ids.forEach(function (id) { (threads[id] = threads[id] || []).push({ role: "user", content: text }); });
+    send.disabled = true; q.value = "";
+    trace.innerHTML = '<p class="thinking">working…</p>';
+    var wrap = ids.length > 1 ? add("bot", "", "cmp") : null;
+    var jobs = ids.map(function (id) {
+      var box;
+      if (wrap) { box = document.createElement("div"); box.className = "ans"; wrap.appendChild(box); }
+      else box = add("bot", "");
+      box.innerHTML = head(id);
+      return run(id, box);
+    });
+    Promise.all(jobs).then(function (rs) {
+      trace.innerHTML = rs.map(function (r) {
+        return (rs.length > 1 ? "<h3>" + esc(label(r.id)) + "</h3>" : "") +
+          (r.d ? traceHtml(r.d.trace || []) : '<p class="thinking">failed</p>');
+      }).join("");
+    }).finally(function () { send.disabled = false; q.focus(); log.scrollTop = log.scrollHeight; });
+  }
+
+  function loadModels(keep) {
+    return fetch("api/info").then(function (r) { return r.json(); }).then(function (d) {
+      glossaryBase = location.protocol + "//" + location.hostname + ":" + d.glossary_port;
+      MODELS = d.models || [];
+      var cur = keep || d.default_model;
+      sel.innerHTML = MODELS.map(function (m) {
+        return '<option value="' + esc(m.id) + '">' + esc(m.label) + "</option>";
+      }).join("") + (MODELS.length > 1 ? '<option value="' + COMPARE + '">Compare all side by side</option>' : "");
+      if (!MODELS.length) sel.innerHTML = "<option>no local model answering</option>";
+      else sel.value = MODELS.concat([{ id: COMPARE }]).some(function (m) { return m.id === cur; }) ? cur : d.default_model;
+      document.getElementById("meta").innerHTML = "mind map " + esc(d.version) + " · " + d.terms + " terms · " + d.kpis + " KPIs<br>" +
+        MODELS.length + " local model" + (MODELS.length === 1 ? "" : "s") + " available";
+      document.getElementById("tools").innerHTML = d.tools.map(function (t) { return "<li>" + esc(t.name) + "</li>"; }).join("");
+    }).catch(function () { document.getElementById("meta").textContent = "info unavailable"; });
+  }
+
+  document.getElementById("f").addEventListener("submit", function (e) { e.preventDefault(); ask(q.value); });
+  document.getElementById("reset").addEventListener("click", function () {
+    threads = {};
+    Array.prototype.slice.call(log.querySelectorAll(".msg")).forEach(function (n) { n.remove(); });
+    trace.innerHTML = '<p class="thinking">Calls for the latest answer appear here.</p>';
+    q.focus();
+  });
+  /* Re-discover every 30s (never while the picker is open: rebuilding options would close it),
+     so a model swapped on the GPU shows up without a page reload. */
+  setInterval(function () { if (document.activeElement !== sel && !send.disabled) loadModels(sel.value); }, 30000);
+  sel.addEventListener("change", function () {
+    add("bot", '<span class="thinking">Now asking: ' + esc(sel.value === COMPARE ? "all models side by side" : label(sel.value)) +
+      ". Each model keeps its own conversation thread.</span>");
+  });
+  document.getElementById("chips").innerHTML = EXAMPLES.map(function (x) { return '<span class="chip">' + esc(x) + "</span>"; }).join("");
+  document.getElementById("chips").addEventListener("click", function (e) { if (e.target.classList.contains("chip")) ask(e.target.textContent); });
+  loadModels();
+  q.focus();
+})();
+</script>
+</body>
+</html>
