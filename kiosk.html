@@ -241,32 +241,16 @@
       color: var(--ink-dim); font-size: 27px; padding: 14px 30px; border-radius: 999px;
     }
 
-    /* ---------- Toki easter egg ---------- */
+    /* ---------- Toki easter egg: transparent overlay on the map ---------- */
     #toki {
       position: absolute; inset: 0; z-index: 15;
-      display: none; align-items: center; justify-content: center;
-      background: rgba(10,11,15,.8);
+      display: none; pointer-events: none;   /* the map stays live underneath */
     }
-    #toki.show { display: flex; }
-    #tokiCard {
-      background: var(--panel); border: 1px solid var(--primary);
-      border-radius: 26px; padding: 40px 36px 30px;
-      width: calc(100% - 80px); text-align: center;
-    }
-    #tokiCard h2 { margin: 0 0 6px; font-size: 42px; color: var(--primary); letter-spacing: 2px; }
-    #tokiCard .sub { font-size: 27px; color: var(--muted); margin-bottom: 24px; }
-    #tokiCard pre {
-      font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
-      font-size: min(22px, 4.1vw);
-      line-height: 1.15;
-      color: var(--ink);
-      margin: 0 0 26px; text-align: left;
-      display: inline-block;
-    }
-    #tokiClose {
-      font: inherit; font-size: 30px; color: var(--ink);
-      background: var(--primary); border: none; border-radius: 14px;
-      padding: 18px 48px; cursor: pointer;
+    #toki.show { display: block; }
+    #tokiSprite {
+      position: absolute; left: 50%; bottom: 0;
+      transform: translateX(-50%);
+      width: min(34vw, 42vh);                 /* peeks over the bottom edge */
     }
 
     /* error screen */
@@ -357,25 +341,7 @@
         </div>
       </div>
       <div id="toki">
-        <div id="tokiCard">
-          <h2>TOKI</h2>
-          <div class="sub">the Tokenomics Mascot · preview, SVG coming soon</div>
-          <pre>
-        .--------------------.
-       /  .-.   .-.   .-.     \
-      |  (   ) (   ) (   )     |
-      |   '-'   '-'   '-'      |
-      |    oOo     oOo    *    |
-       \      ________        /
-        '---'        '---'---'
-     ___/  ___/  ___/  ___/  \
-    ( 01 )( 10 )( 01 )( 10 )  }
-     --- cost / consumption / value ---
-          TOKI sees every token.
-        '---------------------'</pre>
-          <br>
-          <button id="tokiClose">Back to the map</button>
-        </div>
+        <video id="tokiSprite" src="assets/toki_overlay.webm" playsinline muted preload="auto"></video>
       </div>
     </div>
 
@@ -420,7 +386,9 @@
        - Idle toast says "touch anywhere to cancel".
        - Cover: TF logo, brand gradient, honest button copy.
        - Easter egg: 3 consecutive PRECISE taps on node bullets (not the
-         label) reveal TOKI THE TOKENOMICS MASCOT.
+         label) make TOKI THE TOKENOMICS MASCOT peek over the bottom edge
+         of the map and duck back down (transparent WebM sprite, GIF
+         fallback). Overlay is click-through; no sound in kiosk.
 
        States: cover -> tutorial (each session) -> map.
        IDLE_MS of no touch -> cover (attract loop).
@@ -795,22 +763,45 @@
     });
     document.getElementById("tutSkip").addEventListener("click", closeTut);
 
-    /* ---- Toki easter egg: 3 consecutive precise bullet taps ---- */
-    let tokiStreak = 0, tokiTimer = null;
+    /* ---- Toki easter egg: 3 consecutive precise bullet taps ----
+       Toki is a transparent sprite (WebM VP9 alpha; GIF fallback) that peeks
+       up over the bottom edge of the map, stays a beat, ducks back down and
+       hides itself. The overlay is pointer-events:none: the map stays usable
+       through it. Source: toki.mp4 in the drop, keyed + cropped offline. */
+    let tokiStreak = 0, tokiTimer = null, tokiBusy = false;
     const toki = document.getElementById("toki");
+    const tokiSprite = document.getElementById("tokiSprite");
+    // GIF fallback when the host browser lacks WebM alpha (Safari)
+    if (tokiSprite.canPlayType("video/webm;codecs=vp9") === "") {
+      tokiSprite.src = "assets/toki_overlay.gif";
+    }
+    function openToki() {
+      tokiBusy = true;
+      toki.classList.add("show");
+      tokiSprite.currentTime = 0;
+      tokiSprite.muted = true;                    // autoplay-policy safe
+      tokiSprite.play().catch(() => hideToki());  // play() failing shouldn't stick the overlay on
+    }
+    function hideToki() {
+      tokiBusy = false;
+      toki.classList.remove("show");
+      tokiSprite.pause();
+    }
+    // the clip plays once (peek up -> hold -> duck) and retires itself
+    tokiSprite.addEventListener("ended", () => { hideToki(); bumpIdle(); });
+    tokiSprite.addEventListener("error", () => { hideToki(); });
     function registerTokiTap(hit) {
       clearTimeout(tokiTimer);
-      if (toki.classList.contains("show")) return;
+      if (tokiBusy) return;
       tokiStreak = hit ? tokiStreak + 1 : 0;
       if (tokiStreak >= 3) {
         tokiStreak = 0;
-        toki.classList.add("show");
+        openToki();
+        bumpIdle();                               // an easter egg counts as attention
         return;
       }
       tokiTimer = setTimeout(() => { tokiStreak = 0; }, 2500);
     }
-    document.getElementById("tokiClose").addEventListener("click", () => { toki.classList.remove("show"); bumpIdle(); });
-    toki.addEventListener("click", (e) => { if (e.target === toki) { toki.classList.remove("show"); bumpIdle(); } });
 
     /* ---- idle -> back to cover ---- */
     function bumpIdle() {
@@ -824,7 +815,7 @@
     function goCover() {
       clearTimeout(idleTimer); clearTimeout(hintTimer);
       card.classList.remove("show");
-      toki.classList.remove("show");
+      hideToki();
       closeTut();
       show("cover");
       startCoverViz();
