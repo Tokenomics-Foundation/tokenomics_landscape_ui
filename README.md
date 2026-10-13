@@ -8,70 +8,87 @@ YAML the mind map viewer uses.
 
 | Page | What it is |
 |---|---|
-| `terminology.html` | Every node as a readable, searchable glossary with a KPI toggle (same file, `?mode=kpi` opens KPI mode). Deep links: `?term=<slug>` anywhere, `/terminology/<slug>` where a host rewrites it. |
+| `terminology.html` | Every node as a readable, searchable glossary with a KPI toggle in one self-contained file (data inlined as JSON, zero external requests). Deep links are hashes: `#<slug>` for a term, `#kpi` / `#kpi/<slug>` for KPI mode. Works identically hosted, on `file://`, and pasted into WordPress. |
 | `kiosk.html` | Portrait 1080x1920 event kiosk (from the `kiosk-mode` branch of `tokenomics_mindmap`). Loads the pinned data version and reads node `Type`. |
 | `explorer/` | Mind Map Explorer: an MCP server over the pinned mind map plus a chat page where an agent places plain-language descriptions in the map. Needs a server process; not a GitHub Pages page. See `explorer/README.md`. |
 
 ## Data versioning
 
-`tokenomics_mindmap` is referenced only by named version. The YAML is vendored
-under `data/<version>/tokenomics_mindmap.yaml` and pages load that path, never
-a live branch:
+`tokenomics_mindmap` is referenced only by named version. Released YAMLs are
+vendored under `data/<version>/tokenomics_mindmap.yaml`; released versions
+stay immutable, and a booth kiosk only changes when you deliberately point it
+at a new version:
 
     data/v0.0.2/tokenomics_mindmap.yaml   # sha256 472b6feb8463a153...cfb835a3d, tag v0.0.2
 
-To pick up a new data release:
+To pick up a new data release, vendor it, then re-pin the pages:
 
     git -C ../tokenomics_mindmap show v0.0.3:tokenomics_mindmap.yaml > data/v0.0.3/tokenomics_mindmap.yaml
+    scripts/pin_data.py v0.0.3
 
-then bump `DATA_VERSION` in `terminology.html` (rebuild `kpis.html`) and
-`DEFAULT_FILE` in `kiosk.html`. Keep released versions immutable; a booth
-kiosk only changes when you deliberately point it at a new version.
+`scripts/pin_data.py <version>` is a one-off maintenance helper, not a page
+build. It converts the vendored YAML to JSON and rewrites only the
+`#tfg-data` block, the `DATA_VERSION` constant, and the version notes in the
+`terminology.html` header comment. The second run with the same version
+reports identical and writes nothing; the conversion refuses em/en dashes
+(house rules). `terminology.html` stays the complete, hand-editable artifact:
+per the TF Mini-Tool Guide there is no build step and no fork. Also bump
+`DEFAULT_FILE` in `kiosk.html` when pinning a new version there.
 
-`?data=<url>` overrides the pinned file for reviewing an unreleased YAML.
-Opened from a network share or disk (file://), auto-load is blocked by the
-browser and the page falls back to a one-time YAML file picker.
+## terminology.html: one file, three consumers
 
-## WordPress
+The file is a TF HTML mini-tool (see the HTML Mini-Tool Development Guide):
+one self-contained fragment, no doctype/html/head/body, zero external
+requests, ID-scoped CSS (`#te-terminology`, `tfg-` classes), one guarded ES5
+IIFE. The pinned mind map rides inside as JSON in
+`<script type="application/json" id="tfg-data">`, so nothing is fetched and
+js-yaml is not needed. It serves three consumers with no variants:
 
-`terminology.html` and `kpis.html` follow the TF dual-role contract: the
-`<div id="te-terminology">` block (ID-scoped CSS + one IIFE, zero external
-requests besides the pinned YAML fetch) pastes into a Custom HTML block on a
-`te_page`. One WordPress page hosts the view; the 823 individual terms each
-get a URL via `?term=<slug>` rather than 823 uploaded pages. The glossary and
-KPI views are the same tool in two modes, so they can share one WP page or use
-two with the mode pinned.
+- **WordPress (the draft target):** paste the entire file into one Custom
+  HTML block on a `te_page`. This is a Working Group draft: the page carries
+  a visible "Working Group draft · mind map v0.0.2" label.
+- **Offline review:** open the file directly (`file://`, network share, no
+  network). Same hash links, same behavior, still 823 terms.
+- **Repo demo server:** `python3 scripts/serve_demo.py` (port 8788) serves
+  the clean paths below and doubles as the reference rewrite rule for a
+  future host-side rule. Optional; the page does not need it.
 
-## SEO: URL scheme for the 823 terms
+There is no separate kpis.html: Glossary and KPI are two modes of this one
+file, switched by the toggle or `#kpi`.
 
-No query strings anywhere in the page's links. Canonical scheme:
+## Links and URL scheme
 
-    /terminology          glossary index
-    /terminology/<slug>   one term
-    /kpi                  KPI index
-    /kpi/<slug>           one KPI
+WordPress has no rewrite rules, so every generated link is a hash and the
+app never leaves the page:
 
-One HTML file serves all four; the host rewrite (WordPress rule, nginx
-`try_files`, or the repo demo server) maps every path to it and the page
-reads the slug/mode from the path. `scripts/serve_demo.py` (kept in sync
-with the host copy) is the reference rewriter.
+    #/              glossary
+    #<slug>         one term, focused and highlighted
+    #kpi            KPI cards
+    #kpi/<slug>     one KPI, focused and highlighted
 
-Open caveat (unchanged from the 2026-10-06 SEO review): term content still
-arrives via XHR/JS, so Google indexes it after a render delay and non-JS
-scrapers see a shell. Path URLs fix the canonicalization side; if per-term
-SEO gets serious the escalation is a static build emitting real pages from
-the pinned YAML. Not needed while the map is draft.
+Back/forward work via `hashchange`. A host that does serve the file at the
+clean paths (`/terminology`, `/terminology/<slug>`, `/kpi`, `/kpi/<slug>`),
+like `scripts/serve_demo.py`, is honoured on load: the mode/slug is read
+from the path when the URL carries no hash yet. Links are never emitted as
+paths, so nothing 404s on WordPress.
 
-On file:// (opened from the network share), links degrade to `#<slug>`
-within the page and the toggle switches modes in place.
+SEO caveat (unchanged from the 2026-10-06 review): term content arrives via
+JS, so crawlers index it only after render, and hash URLs are not per-term
+canonical URLs. Fine for an internal WG draft; if per-term SEO gets serious
+the escalation is a static build emitting real pages from the pinned YAML,
+behind a host rewrite.
 
 ## Editing
 
 - `terminology.html` is the only edit surface for the glossary/KPI views
-  (one file, toggle + `?mode=kpi`; there is no separate kpis.html).
+  (one file, data inlined; there is no separate kpis.html and no dist twin).
+  Verify edits with the structural checker:
+  `python3 ~/skills/productivity/tf-html-artifact-authoring/scripts/tf_html_check.py terminology.html`
+  must exit 0.
 - `kiosk.html` is a copy of the mindmap repo's kiosk; changes intended to be
   permanent should be sent back to `tokenomics_mindmap` before re-copying.
-- `vendor/` holds d3, js-yaml, qrcode locally so pages run with no CDN.
+- `vendor/` holds d3, js-yaml, qrcode locally for the kiosk and explorer.
+  `terminology.html` no longer uses js-yaml (data ships as JSON).
 
 ## License
 
