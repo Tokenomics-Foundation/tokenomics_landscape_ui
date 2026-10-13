@@ -8,6 +8,7 @@
   <link rel="icon" href="assets/tf-icon.png" />
   <script src="vendor/d3.v7.min.js"></script>
   <script src="vendor/js-yaml.min.js"></script>
+  <script src="vendor/qrcode.min.js"></script>
   <style>
     /* Kiosk mode: designed for a 1080x1920 portrait touchscreen.
        Branding follows tokeneconomics.com: --primary #4F7CFF on #0A0B0F.
@@ -110,6 +111,19 @@
       0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(79,124,255,.55); }
       50% { transform: scale(1.045); box-shadow: 0 0 60px 12px rgba(79,124,255,.28); }
     }
+    /* CTA: the cover is the attract screen; take-the-map-home lives here
+       and only here — during a session the booth staff are the CTA. */
+    #coverCta {
+      display: flex; align-items: center; justify-content: center; gap: 34px;
+      margin: 64px auto 0;
+    }
+    #coverCta .qr {
+      background: #fff; padding: 14px; border-radius: 14px; flex: 0 0 auto;
+    }
+    #coverCta .qr img, #coverCta .qr canvas { display: block; }
+    #coverCta .ctaTxt { text-align: left; }
+    #coverCta .ctaTxt .l1 { font-size: 34px; font-weight: 700; color: var(--ink); }
+    #coverCta .ctaTxt .l2 { font-size: 30px; color: var(--primary); margin-top: 6px; word-break: break-all; }
     /* ---------- map screen ---------- */
     #mapscr { background: var(--bg); }
     #topbar {
@@ -327,6 +341,13 @@
         <p class="tag">Define Tokenomics with us.</p>
         <p class="tagsub">An open map of AI economics, still being written&hellip;</p>
         <button id="startBtn">START EXPLORING</button>
+        <div id="coverCta">
+          <div class="qr" id="coverQr"></div>
+          <div class="ctaTxt">
+            <div class="l1">Take the map home.</div>
+            <div class="l2">tokeneconomics.com/ai-tokenomics-mind-map</div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -340,7 +361,7 @@
         <button class="kbtn" id="homeBtn">Home</button>
       </div>
       <div id="guides">
-        <span class="glabel">Guides:</span>
+        <span class="glabel">Start here:</span>
         <button class="kbtn gbtn" data-node="Quantization" style="--gc:#5b8cff">Quantization</button>
         <button class="kbtn gbtn" data-node="Caching" style="--gc:#b98cff">Caching</button>
         <button class="kbtn gbtn" data-node="Value Categorization" style="--gc:#ff6fa4">Value Categorization</button>
@@ -865,6 +886,7 @@
     let fitTimer = null;
     function fitSoon() { clearTimeout(fitTimer); fitTimer = setTimeout(fit, DUR + 30); }
     function fit() {
+      if (screen !== "map") return;   // stage is 0x0 while the cover is up; NaN transforms otherwise
       if (!allRows.length) return;
       const w = stage.clientWidth, h = stage.clientHeight;
       const bottomPad = card.classList.contains("show") ? Math.min(h * 0.46, card.offsetHeight + 50) : 0;
@@ -974,6 +996,19 @@
     document.getElementById("recenterBtn").addEventListener("click", () => { fit(); bumpIdle(); });
     ["pointerdown", "touchstart", "wheel", "keydown"].forEach(ev =>
       document.getElementById("app").addEventListener(ev, () => { if (screen === "map") bumpIdle(); }, { passive: true }));
+
+    /* ---- cover CTA: one QR, the hosted map, attract screen only ---- */
+    const MAP_URL = "https://www.tokeneconomics.com/ai-tokenomics-mind-map/";
+    (function renderCoverQr() {
+      if (typeof QRCode === "undefined") {       // vendored lib missing: text CTA still works
+        document.getElementById("coverCta").querySelector(".qr").style.display = "none";
+        return;
+      }
+      try {
+        new QRCode(document.getElementById("coverQr"),
+          { text: MAP_URL, width: 240, height: 240, correctLevel: QRCode.CorrectLevel.M });
+      } catch (e) { document.getElementById("coverQr").style.display = "none"; }
+    })();
 
     /* ---- boot + file:// fallback loader ---- */
     function die(msg) {

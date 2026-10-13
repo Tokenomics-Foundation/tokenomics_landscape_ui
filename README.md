@@ -19,6 +19,7 @@ vendored under `data/<version>/tokenomics_mindmap.yaml`; released versions
 stay immutable, and a booth kiosk only changes when you deliberately point it
 at a new version:
 
+    data/v0.0.3/tokenomics_mindmap.yaml   # sha256 0ce6e8d0a4cd9d58...3f8f9c91, tag v0.0.3
     data/v0.0.2/tokenomics_mindmap.yaml   # sha256 472b6feb8463a153...cfb835a3d, tag v0.0.2
 
 To pick up a new data release, vendor it, then re-pin the pages:
@@ -46,9 +47,9 @@ js-yaml is not needed. It serves three consumers with no variants:
 
 - **WordPress (the draft target):** paste the entire file into one Custom
   HTML block on a `te_page`. This is a Working Group draft: the page carries
-  a visible "Working Group draft · mind map v0.0.2" label.
+  a visible "Working Group draft · mind map v0.0.3" label.
 - **Offline review:** open the file directly (`file://`, network share, no
-  network). Same hash links, same behavior, still 823 terms.
+  network). Same hash links, same behavior, still 827 terms.
 - **Repo demo server:** `python3 scripts/serve_demo.py` (port 8788) serves
   the clean paths below and doubles as the reference rewrite rule for a
   future host-side rule. Optional; the page does not need it.
