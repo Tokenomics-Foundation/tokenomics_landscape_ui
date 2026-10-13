@@ -18,11 +18,12 @@ YAML the mind map viewer uses.
 under `data/<version>/tokenomics_mindmap.yaml` and pages load that path, never
 a live branch:
 
+    data/v0.0.3/tokenomics_mindmap.yaml   # sha256 0ce6e8d0a4cd9d58...3f8f9c91, tag v0.0.3
     data/v0.0.2/tokenomics_mindmap.yaml   # sha256 472b6feb8463a153...cfb835a3d, tag v0.0.2
 
 To pick up a new data release:
 
-    git -C ../tokenomics_mindmap show v0.0.3:tokenomics_mindmap.yaml > data/v0.0.3/tokenomics_mindmap.yaml
+    git -C ../tokenomics_mindmap show v0.0.4:tokenomics_mindmap.yaml > data/v0.0.4/tokenomics_mindmap.yaml
 
 then bump `DATA_VERSION` in `terminology.html` (rebuild `kpis.html`) and
 `DEFAULT_FILE` in `kiosk.html`. Keep released versions immutable; a booth
@@ -37,12 +38,12 @@ browser and the page falls back to a one-time YAML file picker.
 `terminology.html` and `kpis.html` follow the TF dual-role contract: the
 `<div id="te-terminology">` block (ID-scoped CSS + one IIFE, zero external
 requests besides the pinned YAML fetch) pastes into a Custom HTML block on a
-`te_page`. One WordPress page hosts the view; the 823 individual terms each
-get a URL via `?term=<slug>` rather than 823 uploaded pages. The glossary and
+`te_page`. One WordPress page hosts the view; the 827 individual terms each
+get a URL via `?term=<slug>` rather than 827 uploaded pages. The glossary and
 KPI views are the same tool in two modes, so they can share one WP page or use
 two with the mode pinned.
 
-## SEO: URL scheme for the 823 terms
+## SEO: URL scheme for the 827 terms
 
 No query strings anywhere in the page's links. Canonical scheme:
 

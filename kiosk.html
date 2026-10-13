@@ -111,14 +111,19 @@
       0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(79,124,255,.55); }
       50% { transform: scale(1.045); box-shadow: 0 0 60px 12px rgba(79,124,255,.28); }
     }
-    #cover .foot {
-      position: absolute;
-      bottom: 46px; left: 0; right: 0;
-      text-align: center;
-      color: var(--muted);
-      font-size: 26px;
+    /* CTA: the cover is the attract screen; take-the-map-home lives here
+       and only here — during a session the booth staff are the CTA. */
+    #coverCta {
+      display: flex; align-items: center; justify-content: center; gap: 34px;
+      margin: 64px auto 0;
     }
-
+    #coverCta .qr {
+      background: #fff; padding: 14px; border-radius: 14px; flex: 0 0 auto;
+    }
+    #coverCta .qr img, #coverCta .qr canvas { display: block; }
+    #coverCta .ctaTxt { text-align: left; }
+    #coverCta .ctaTxt .l1 { font-size: 34px; font-weight: 700; color: var(--ink); }
+    #coverCta .ctaTxt .l2 { font-size: 30px; color: var(--primary); margin-top: 6px; word-break: break-all; }
     /* ---------- map screen ---------- */
     #mapscr { background: var(--bg); }
     #topbar {
@@ -139,6 +144,54 @@
       border-radius: 14px;
       cursor: pointer;
     }
+    /* guided-mode buttons: one per domain, tinted with the branch color */
+    #guides {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 22px; background: var(--panel);
+      border-bottom: 1px solid var(--line); flex: 0 0 auto;
+      overflow-x: auto;
+    }
+    #guides .glabel { font-size: 26px; color: var(--muted); flex: 0 0 auto; }
+    .gbtn { font-weight: 700; border-color: var(--gc, var(--line)); flex: 0 0 auto; }
+    .gbtn::before {
+      content: ""; display: inline-block; width: 16px; height: 16px;
+      border-radius: 50%; background: var(--gc, var(--muted));
+      margin-right: 12px; vertical-align: 1px;
+    }
+    .gbtn.on { background: var(--gc); border-color: var(--gc); color: #fff; }
+    /* search: opens as a row of buttons under the topbar (no keyboard here) */
+    #searchBtn { font-weight: 700; }
+    #searchbar {
+      display: none; align-items: center; gap: 14px;
+      padding: 14px 22px; background: var(--panel);
+      border-bottom: 1px solid var(--line); flex: 0 0 auto;
+    }
+    #searchbar.show { display: flex; }
+    #searchInput {
+      flex: 1; min-width: 0; font: inherit; font-size: 30px;
+      background: var(--bg); color: var(--ink);
+      border: 1px solid var(--line); border-radius: 14px;
+      padding: 14px 20px;
+    }
+    #searchCount { font-size: 26px; color: var(--muted); flex: 0 0 auto; }
+    #searchResults {
+      position: absolute; left: 24px; right: 24px; top: 24px; bottom: 24px;
+      z-index: 10; overflow-y: auto; display: none;
+      background: rgba(23,23,27,.97); border: 1px solid var(--line);
+      border-radius: 22px; padding: 10px 16px;
+    }
+    #searchResults.show { display: block; }
+    .hit-row { border-bottom: 1px solid var(--line); }
+    .hit-row:last-child { border-bottom: none; }
+    .hit-row button {
+      display: block; width: 100%; text-align: left; font: inherit;
+      background: none; border: none; color: var(--ink); cursor: pointer;
+      padding: 20px 10px;
+    }
+    .hit-row .nm { display: block; font-size: 32px; font-weight: 700; }
+    .hit-row .nm b { color: var(--primary); font-weight: 700; }
+    .hit-row .crumb { display: block; font-size: 26px; line-height: 1.35; color: var(--muted); margin-top: 6px; }
+    .hit-none { font-size: 30px; color: var(--muted); padding: 30px 10px; }
     #stage { position: relative; flex: 1; overflow: hidden; }
     #stage svg { width: 100%; height: 100%; display: block; }
 
@@ -183,14 +236,6 @@
     #card .desc { margin: 0; font-size: 30px; line-height: 1.45; color: var(--ink-dim); }
     #card .hintline { margin: 10px 0 0; font-size: 26px; color: var(--muted); }
     #card .links { margin-top: 14px; font-size: 24px; color: var(--primary); word-break: break-all; }
-    #card .fb {
-      margin-top: 22px; border-top: 1px solid var(--line);
-      padding-top: 18px;
-      display: flex; align-items: center; gap: 24px;
-    }
-    #card .fb .qr { background: #fff; padding: 8px; border-radius: 10px; flex: 0 0 auto; }
-    #card .fb .qr img, #card .fb .qr canvas { display: block; }
-    #card .fb .fbtxt { font-size: 26px; color: var(--muted); line-height: 1.4; }
     #card .close {
       position: absolute; top: 10px; right: 12px;
       font-size: 40px; color: var(--muted); background: none; border: none;
@@ -241,32 +286,16 @@
       color: var(--ink-dim); font-size: 27px; padding: 14px 30px; border-radius: 999px;
     }
 
-    /* ---------- Toki easter egg ---------- */
+    /* ---------- Toki easter egg: transparent overlay on the map ---------- */
     #toki {
       position: absolute; inset: 0; z-index: 15;
-      display: none; align-items: center; justify-content: center;
-      background: rgba(10,11,15,.8);
+      display: none; pointer-events: none;   /* the map stays live underneath */
     }
-    #toki.show { display: flex; }
-    #tokiCard {
-      background: var(--panel); border: 1px solid var(--primary);
-      border-radius: 26px; padding: 40px 36px 30px;
-      width: calc(100% - 80px); text-align: center;
-    }
-    #tokiCard h2 { margin: 0 0 6px; font-size: 42px; color: var(--primary); letter-spacing: 2px; }
-    #tokiCard .sub { font-size: 27px; color: var(--muted); margin-bottom: 24px; }
-    #tokiCard pre {
-      font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
-      font-size: min(22px, 4.1vw);
-      line-height: 1.15;
-      color: var(--ink);
-      margin: 0 0 26px; text-align: left;
-      display: inline-block;
-    }
-    #tokiClose {
-      font: inherit; font-size: 30px; color: var(--ink);
-      background: var(--primary); border: none; border-radius: 14px;
-      padding: 18px 48px; cursor: pointer;
+    #toki.show { display: block; }
+    #tokiSprite {
+      position: absolute; left: 50%; bottom: 0;
+      transform: translateX(-50%);
+      width: min(34vw, 42vh);                 /* peeks over the bottom edge */
     }
 
     /* error screen */
@@ -312,8 +341,14 @@
         <p class="tag">Define Tokenomics with us.</p>
         <p class="tagsub">An open map of AI economics, still being written&hellip;</p>
         <button id="startBtn">START EXPLORING</button>
+        <div id="coverCta">
+          <div class="qr" id="coverQr"></div>
+          <div class="ctaTxt">
+            <div class="l1">Take the map home.</div>
+            <div class="l2">tokeneconomics.com/ai-tokenomics-mind-map</div>
+          </div>
+        </div>
       </div>
-      <div class="foot">Tokenomicon + FinOps X · Amsterdam</div>
     </div>
 
     <!-- MAP -->
@@ -321,21 +356,30 @@
       <div id="topbar">
         <img class="logo" src="assets/tf-logo.svg" alt="Tokenomics Foundation" />
         <div class="spacer"></div>
+        <button class="kbtn" id="searchBtn">Search</button>
         <button class="kbtn" id="recenterBtn">⌂ Recenter</button>
         <button class="kbtn" id="homeBtn">Home</button>
       </div>
+      <div id="guides">
+        <span class="glabel">Start here:</span>
+        <button class="kbtn gbtn" data-node="Quantization" style="--gc:#5b8cff">Quantization</button>
+        <button class="kbtn gbtn" data-node="Caching" style="--gc:#b98cff">Caching</button>
+        <button class="kbtn gbtn" data-node="Value Categorization" style="--gc:#ff6fa4">Value Categorization</button>
+      </div>
+      <div id="searchbar">
+        <input id="searchInput" type="text" placeholder="Type to search terms, paths, descriptions" autocomplete="off" spellcheck="false" />
+        <span id="searchCount"></span>
+        <button class="kbtn" id="searchClose">Close</button>
+      </div>
       <div id="stage">
         <svg></svg>
+        <div id="searchResults"></div>
         <div id="card">
           <button class="close" id="cardClose">✕</button>
           <h3 id="cardTitle"></h3>
           <p class="desc" id="cardDesc"></p>
           <p class="hintline" id="cardHint"></p>
           <div class="links" id="cardLinks" style="display:none"></div>
-          <div class="fb" id="cardFb">
-            <div class="qr" id="cardQr"></div>
-            <div class="fbtxt">Know something about this definition?<br><b>Scan to send feedback</b> from your phone.</div>
-          </div>
         </div>
         <div id="idleHint"><span>Returning to start… touch anywhere to cancel</span></div>
       </div>
@@ -357,25 +401,7 @@
         </div>
       </div>
       <div id="toki">
-        <div id="tokiCard">
-          <h2>TOKI</h2>
-          <div class="sub">the Tokenomics Mascot · preview, SVG coming soon</div>
-          <pre>
-        .--------------------.
-       /  .-.   .-.   .-.     \
-      |  (   ) (   ) (   )     |
-      |   '-'   '-'   '-'      |
-      |    oOo     oOo    *    |
-       \      ________        /
-        '---'        '---'---'
-     ___/  ___/  ___/  ___/  \
-    ( 01 )( 10 )( 01 )( 10 )  }
-     --- cost / consumption / value ---
-          TOKI sees every token.
-        '---------------------'</pre>
-          <br>
-          <button id="tokiClose">Back to the map</button>
-        </div>
+        <video id="tokiSprite" src="assets/toki_overlay.webm" playsinline muted preload="auto"></video>
       </div>
     </div>
 
@@ -414,24 +440,20 @@
          and never shrinks with depth. Deep trees scroll, not squish.
        - Definition card is persistent: opens on first touch of any node,
          updates with each touch, only the (large) X closes it.
-       - Feedback QR: every definition card carries a QR deep-linking to
-         the survey pre-filled with the node path. Set FEEDBACK_BASE to the
-         live form URL before the event; degrades to plain text w/o net.
        - Idle toast says "touch anywhere to cancel".
        - Cover: TF logo, brand gradient, honest button copy.
        - Easter egg: 3 consecutive PRECISE taps on node bullets (not the
-         label) reveal TOKI THE TOKENOMICS MASCOT.
+         label) make TOKI THE TOKENOMICS MASCOT peek over the bottom edge
+         of the map and duck back down (transparent WebM sprite, GIF
+         fallback). Overlay is click-through; no sound in kiosk.
 
        States: cover -> tutorial (each session) -> map.
        IDLE_MS of no touch -> cover (attract loop).
        ===================================================================== */
     const BRANCH_COLORS = { Production: "#5b8cff", Consumption: "#b98cff", Value: "#ff6fa4" };
-    const DEFAULT_FILE = "data/v0.0.2/tokenomics_mindmap.yaml";
+    const DEFAULT_FILE = "data/v0.0.3/tokenomics_mindmap.yaml";
     const IDLE_MS = 90000;
     const DUR = 380;
-    // TODO before event: point at the real feedback form (Google Form with
-    // a prefilled hidden question, or ?page= query on any form).
-    const FEEDBACK_BASE = "https://www.tokeneconomics.com/mindmap-feedback";
 
     let dataRoot = null;
     let screen = "cover";
@@ -726,28 +748,7 @@
       const links = document.getElementById("cardLinks");
       if (d.links && d.links.length) { links.textContent = d.links.join("  ·  "); links.style.display = "block"; }
       else links.style.display = "none";
-      renderQr(d);
       card.classList.add("show");
-    }
-    function renderQr(d) {
-      const box = document.getElementById("cardQr");
-      box.innerHTML = "";
-      if (typeof QRCode === "undefined") return;   // offline: QR degrades away
-      const path = nodePath(d).join(" > ");
-      const url = FEEDBACK_BASE + "?node=" + encodeURIComponent(path);
-      try {
-        new QRCode(box, { text: url, width: 128, height: 128, correctLevel: QRCode.CorrectLevel.M });
-      } catch (e) { /* leave blank */ }
-    }
-    function nodePath(d) {
-      const path = [];
-      (function walk(n, acc) {
-        const next = acc.concat(n === dataRoot ? [] : [n.name]);
-        if (n === d) { path.push(...next); return true; }
-        for (const c of (n.children || [])) if (walk(c, next)) return true;
-        return false;
-      })(dataRoot, []);
-      return path;
     }
     document.getElementById("cardClose").addEventListener("click", (e) => {
       e.stopPropagation();
@@ -755,10 +756,137 @@
       bumpIdle();
     });
 
+    /* ---- node index: path strings + searchable text (built at ingest) ---- */
+    let TERMS = [];
+    function buildIndex() {
+      TERMS = [];
+      (function walk(d, path) {
+        const next = d === dataRoot ? [] : path.concat(d.name);
+        const pathStr = next.join(" > ");
+        TERMS.push({ d, name: d.name, path: pathStr,
+          text: (d.name + " " + pathStr + " " + (d.description || "")).toLowerCase() });
+        (d.children || []).forEach(c => walk(c, next));
+      })(dataRoot, []);
+    }
+
+    /* ---- focus a node: single-path view, ancestors + self expanded ---- */
+    function chainTo(d) {
+      const chain = [];
+      (function find(n, acc) {
+        const next = acc.concat(n);
+        if (n === d) { chain.push(...next); return true; }
+        for (const c of (n.children || [])) if (find(c, next)) return true;
+        return false;
+      })(dataRoot, []);
+      return chain;   // [root, …, d]
+    }
+    function focusPath(d) {
+      eachData(dataRoot, n => { if (hasKids(n)) n.collapsed = true; });
+      chainTo(d).forEach(n => { n.collapsed = false; });   // ancestors + d itself
+      update();
+      showCard(d);
+    }
+    function resetView() {
+      // same state as a fresh session: branches visible, everything below folded
+      eachData(dataRoot, n => { n.collapsed = hasKids(n) && n !== dataRoot; });
+      update();
+    }
+
+    /* ---- guided mode: jump the map to a featured branch ---- */
+    const guideBtns = Array.from(document.querySelectorAll("#guides .gbtn"));
+    guideBtns.forEach(btn => btn.addEventListener("click", () => {
+      bumpIdle();
+      closeSearch();
+      if (btn.classList.contains("on")) {        // second tap = leave the guide
+        btn.classList.remove("on");
+        resetView();
+        return;
+      }
+      guideBtns.forEach(b => b.classList.remove("on"));
+      const hit = TERMS.find(t => t.name === btn.dataset.node);
+      if (!hit) return;
+      btn.classList.add("on");
+      focusPath(hit.d);
+    }));
+
+    /* ---- search: results panel, one tap per hit, no keyboard required ---- */
+    const searchBtn = document.getElementById("searchBtn");
+    const searchbar = document.getElementById("searchbar");
+    const searchInput = document.getElementById("searchInput");
+    const searchCount = document.getElementById("searchCount");
+    const searchResults = document.getElementById("searchResults");
+    function openSearch() {
+      searchbar.classList.add("show");
+      searchBtn.classList.add("on");
+      renderSearch();
+      bumpIdle();
+    }
+    function closeSearch() {
+      searchbar.classList.remove("show");
+      searchBtn.classList.remove("on");
+      searchResults.classList.remove("show");
+      searchInput.value = "";
+      searchCount.textContent = "";
+    }
+    searchBtn.addEventListener("click", () => {
+      searchbar.classList.contains("show") ? closeSearch() : openSearch();
+    });
+    document.getElementById("searchClose").addEventListener("click", () => { closeSearch(); bumpIdle(); });
+    searchInput.addEventListener("input", () => { renderSearch(); bumpIdle(); });
+    searchInput.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSearch(); });
+
+    function escHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+    function renderSearch() {
+      const q = searchInput.value.trim().toLowerCase();
+      if (!q) {
+        searchResults.classList.remove("show");
+        searchCount.textContent = "";
+        return;
+      }
+      const hits = TERMS
+        .map(t => {
+          const nl = t.name.toLowerCase();
+          const score = nl.startsWith(q) ? 0 : nl.includes(q) ? 1 : t.text.indexOf(q) >= 0 ? 2 : -1;
+          return { t, score };
+        })
+        .filter(h => h.score >= 0)
+        .sort((a, b) => a.score - b.score || a.t.name.length - b.t.name.length)
+        .slice(0, 60);
+      searchCount.textContent = hits.length + (hits.length === 1 ? " match" : " matches");
+      if (!hits.length) {
+        searchResults.innerHTML = '<div class="hit-none">Nothing matches &ldquo;' + escHtml(searchInput.value) + '&rdquo;.</div>';
+        searchResults.classList.add("show");
+        return;
+      }
+      searchResults.innerHTML = hits.map(({ t }) => {
+        const i = t.name.toLowerCase().indexOf(q);
+        const nm = i >= 0
+          ? escHtml(t.name.slice(0, i)) + "<b>" + escHtml(t.name.slice(i, i + q.length)) + "</b>" + escHtml(t.name.slice(i + q.length))
+          : escHtml(t.name);
+        return '<div class="hit-row"><button data-id="' + keyOf(t.d) + '">' +
+          '<span class="nm">' + nm + "</span>" +
+          '<span class="crumb">' + escHtml(t.path) + "</span></button></div>";
+      }).join("");
+      searchResults.classList.add("show");
+    }
+    searchResults.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-id]");
+      if (!btn) return;
+      const t = TERMS.find(x => keyOf(x.d) === btn.dataset.id);
+      if (!t) return;
+      closeSearch();
+      guideBtns.forEach(b => b.classList.remove("on"));
+      focusPath(t.d);
+      bumpIdle();
+    });
+
     /* ---- fit the list into the stage ---- */
     let fitTimer = null;
     function fitSoon() { clearTimeout(fitTimer); fitTimer = setTimeout(fit, DUR + 30); }
     function fit() {
+      if (screen !== "map") return;   // stage is 0x0 while the cover is up; NaN transforms otherwise
       if (!allRows.length) return;
       const w = stage.clientWidth, h = stage.clientHeight;
       const bottomPad = card.classList.contains("show") ? Math.min(h * 0.46, card.offsetHeight + 50) : 0;
@@ -773,7 +901,7 @@
     const TUT = [
       { big: "One map, three branches", body: "The map shows the whole economics of AI tokens: Production (blue), Consumption (purple), and Value (pink)." },
       { big: "Tap a concept to go deeper", body: "Children open right in the list. The definition panel appears at the bottom and stays up as you explore." },
-      { big: "Swipe and pinch", body: "Drag to pan, pinch to zoom. Scan the QR on any definition card to send feedback from your phone." }
+      { big: "Swipe and pinch", body: "Drag to pan, pinch to zoom. Ask any of us if you want to go deeper on a concept." }
     ];
     let tutIdx = 0;
     const tut = document.getElementById("tut");
@@ -795,22 +923,45 @@
     });
     document.getElementById("tutSkip").addEventListener("click", closeTut);
 
-    /* ---- Toki easter egg: 3 consecutive precise bullet taps ---- */
-    let tokiStreak = 0, tokiTimer = null;
+    /* ---- Toki easter egg: 3 consecutive precise bullet taps ----
+       Toki is a transparent sprite (WebM VP9 alpha; GIF fallback) that peeks
+       up over the bottom edge of the map, stays a beat, ducks back down and
+       hides itself. The overlay is pointer-events:none: the map stays usable
+       through it. Source: toki.mp4 in the drop, keyed + cropped offline. */
+    let tokiStreak = 0, tokiTimer = null, tokiBusy = false;
     const toki = document.getElementById("toki");
+    const tokiSprite = document.getElementById("tokiSprite");
+    // GIF fallback when the host browser lacks WebM alpha (Safari)
+    if (tokiSprite.canPlayType("video/webm;codecs=vp9") === "") {
+      tokiSprite.src = "assets/toki_overlay.gif";
+    }
+    function openToki() {
+      tokiBusy = true;
+      toki.classList.add("show");
+      tokiSprite.currentTime = 0;
+      tokiSprite.muted = true;                    // autoplay-policy safe
+      tokiSprite.play().catch(() => hideToki());  // play() failing shouldn't stick the overlay on
+    }
+    function hideToki() {
+      tokiBusy = false;
+      toki.classList.remove("show");
+      tokiSprite.pause();
+    }
+    // the clip plays once (peek up -> hold -> duck) and retires itself
+    tokiSprite.addEventListener("ended", () => { hideToki(); bumpIdle(); });
+    tokiSprite.addEventListener("error", () => { hideToki(); });
     function registerTokiTap(hit) {
       clearTimeout(tokiTimer);
-      if (toki.classList.contains("show")) return;
+      if (tokiBusy) return;
       tokiStreak = hit ? tokiStreak + 1 : 0;
       if (tokiStreak >= 3) {
         tokiStreak = 0;
-        toki.classList.add("show");
+        openToki();
+        bumpIdle();                               // an easter egg counts as attention
         return;
       }
       tokiTimer = setTimeout(() => { tokiStreak = 0; }, 2500);
     }
-    document.getElementById("tokiClose").addEventListener("click", () => { toki.classList.remove("show"); bumpIdle(); });
-    toki.addEventListener("click", (e) => { if (e.target === toki) { toki.classList.remove("show"); bumpIdle(); } });
 
     /* ---- idle -> back to cover ---- */
     function bumpIdle() {
@@ -824,8 +975,11 @@
     function goCover() {
       clearTimeout(idleTimer); clearTimeout(hintTimer);
       card.classList.remove("show");
-      toki.classList.remove("show");
+      hideToki();
       closeTut();
+      closeSearch();
+      guideBtns.forEach(b => b.classList.remove("on"));
+      if (dataRoot) resetView();          // next session starts from the top level
       show("cover");
       startCoverViz();
     }
@@ -842,6 +996,19 @@
     document.getElementById("recenterBtn").addEventListener("click", () => { fit(); bumpIdle(); });
     ["pointerdown", "touchstart", "wheel", "keydown"].forEach(ev =>
       document.getElementById("app").addEventListener(ev, () => { if (screen === "map") bumpIdle(); }, { passive: true }));
+
+    /* ---- cover CTA: one QR, the hosted map, attract screen only ---- */
+    const MAP_URL = "https://www.tokeneconomics.com/ai-tokenomics-mind-map/";
+    (function renderCoverQr() {
+      if (typeof QRCode === "undefined") {       // vendored lib missing: text CTA still works
+        document.getElementById("coverCta").querySelector(".qr").style.display = "none";
+        return;
+      }
+      try {
+        new QRCode(document.getElementById("coverQr"),
+          { text: MAP_URL, width: 240, height: 240, correctLevel: QRCode.CorrectLevel.M });
+      } catch (e) { document.getElementById("coverQr").style.display = "none"; }
+    })();
 
     /* ---- boot + file:// fallback loader ---- */
     function die(msg) {
@@ -882,6 +1049,7 @@
       eachData(dataRoot, d => { if (d.children && d.children.length) d.collapsed = true; });
       dataRoot.collapsed = false;
       buildColorMap();
+      buildIndex();
       initSvg();
       startCoverViz();
       window.addEventListener("resize", () => { if (screen === "cover") startCoverViz(); else fit(); });
