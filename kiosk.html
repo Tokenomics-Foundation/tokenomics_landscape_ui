@@ -8,7 +8,6 @@
   <link rel="icon" href="assets/tf-icon.png" />
   <script src="vendor/d3.v7.min.js"></script>
   <script src="vendor/js-yaml.min.js"></script>
-  <script src="vendor/qrcode.min.js"></script>
   <style>
     /* Kiosk mode: designed for a 1080x1920 portrait touchscreen.
        Branding follows tokeneconomics.com: --primary #4F7CFF on #0A0B0F.
@@ -175,14 +174,6 @@
     #card .desc { margin: 0; font-size: 30px; line-height: 1.45; color: var(--ink-dim); }
     #card .hintline { margin: 10px 0 0; font-size: 26px; color: var(--muted); }
     #card .links { margin-top: 14px; font-size: 24px; color: var(--primary); word-break: break-all; }
-    #card .fb {
-      margin-top: 22px; border-top: 1px solid var(--line);
-      padding-top: 18px;
-      display: flex; align-items: center; gap: 24px;
-    }
-    #card .fb .qr { background: #fff; padding: 8px; border-radius: 10px; flex: 0 0 auto; }
-    #card .fb .qr img, #card .fb .qr canvas { display: block; }
-    #card .fb .fbtxt { font-size: 26px; color: var(--muted); line-height: 1.4; }
     #card .close {
       position: absolute; top: 10px; right: 12px;
       font-size: 40px; color: var(--muted); background: none; border: none;
@@ -307,10 +298,6 @@
           <p class="desc" id="cardDesc"></p>
           <p class="hintline" id="cardHint"></p>
           <div class="links" id="cardLinks" style="display:none"></div>
-          <div class="fb" id="cardFb">
-            <div class="qr" id="cardQr"></div>
-            <div class="fbtxt">Know something about this definition?<br><b>Scan to send feedback</b> from your phone.</div>
-          </div>
         </div>
         <div id="idleHint"><span>Returning to start… touch anywhere to cancel</span></div>
       </div>
@@ -371,9 +358,6 @@
          and never shrinks with depth. Deep trees scroll, not squish.
        - Definition card is persistent: opens on first touch of any node,
          updates with each touch, only the (large) X closes it.
-       - Feedback QR: every definition card carries a QR deep-linking to
-         the survey pre-filled with the node path. Set FEEDBACK_BASE to the
-         live form URL before the event; degrades to plain text w/o net.
        - Idle toast says "touch anywhere to cancel".
        - Cover: TF logo, brand gradient, honest button copy.
        - Easter egg: 3 consecutive PRECISE taps on node bullets (not the
@@ -388,9 +372,6 @@
     const DEFAULT_FILE = "data/v0.0.2/tokenomics_mindmap.yaml";
     const IDLE_MS = 90000;
     const DUR = 380;
-    // TODO before event: point at the real feedback form (Google Form with
-    // a prefilled hidden question, or ?page= query on any form).
-    const FEEDBACK_BASE = "https://www.tokeneconomics.com/mindmap-feedback";
 
     let dataRoot = null;
     let screen = "cover";
@@ -685,28 +666,7 @@
       const links = document.getElementById("cardLinks");
       if (d.links && d.links.length) { links.textContent = d.links.join("  ·  "); links.style.display = "block"; }
       else links.style.display = "none";
-      renderQr(d);
       card.classList.add("show");
-    }
-    function renderQr(d) {
-      const box = document.getElementById("cardQr");
-      box.innerHTML = "";
-      if (typeof QRCode === "undefined") return;   // offline: QR degrades away
-      const path = nodePath(d).join(" > ");
-      const url = FEEDBACK_BASE + "?node=" + encodeURIComponent(path);
-      try {
-        new QRCode(box, { text: url, width: 128, height: 128, correctLevel: QRCode.CorrectLevel.M });
-      } catch (e) { /* leave blank */ }
-    }
-    function nodePath(d) {
-      const path = [];
-      (function walk(n, acc) {
-        const next = acc.concat(n === dataRoot ? [] : [n.name]);
-        if (n === d) { path.push(...next); return true; }
-        for (const c of (n.children || [])) if (walk(c, next)) return true;
-        return false;
-      })(dataRoot, []);
-      return path;
     }
     document.getElementById("cardClose").addEventListener("click", (e) => {
       e.stopPropagation();
@@ -732,7 +692,7 @@
     const TUT = [
       { big: "One map, three branches", body: "The map shows the whole economics of AI tokens: Production (blue), Consumption (purple), and Value (pink)." },
       { big: "Tap a concept to go deeper", body: "Children open right in the list. The definition panel appears at the bottom and stays up as you explore." },
-      { big: "Swipe and pinch", body: "Drag to pan, pinch to zoom. Scan the QR on any definition card to send feedback from your phone." }
+      { big: "Swipe and pinch", body: "Drag to pan, pinch to zoom. Ask any of us if you want to go deeper on a concept." }
     ];
     let tutIdx = 0;
     const tut = document.getElementById("tut");
