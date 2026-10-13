@@ -130,6 +130,54 @@
       border-radius: 14px;
       cursor: pointer;
     }
+    /* guided-mode buttons: one per domain, tinted with the branch color */
+    #guides {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 22px; background: var(--panel);
+      border-bottom: 1px solid var(--line); flex: 0 0 auto;
+      overflow-x: auto;
+    }
+    #guides .glabel { font-size: 26px; color: var(--muted); flex: 0 0 auto; }
+    .gbtn { font-weight: 700; border-color: var(--gc, var(--line)); flex: 0 0 auto; }
+    .gbtn::before {
+      content: ""; display: inline-block; width: 16px; height: 16px;
+      border-radius: 50%; background: var(--gc, var(--muted));
+      margin-right: 12px; vertical-align: 1px;
+    }
+    .gbtn.on { background: var(--gc); border-color: var(--gc); color: #fff; }
+    /* search: opens as a row of buttons under the topbar (no keyboard here) */
+    #searchBtn { font-weight: 700; }
+    #searchbar {
+      display: none; align-items: center; gap: 14px;
+      padding: 14px 22px; background: var(--panel);
+      border-bottom: 1px solid var(--line); flex: 0 0 auto;
+    }
+    #searchbar.show { display: flex; }
+    #searchInput {
+      flex: 1; min-width: 0; font: inherit; font-size: 30px;
+      background: var(--bg); color: var(--ink);
+      border: 1px solid var(--line); border-radius: 14px;
+      padding: 14px 20px;
+    }
+    #searchCount { font-size: 26px; color: var(--muted); flex: 0 0 auto; }
+    #searchResults {
+      position: absolute; left: 24px; right: 24px; top: 24px; bottom: 24px;
+      z-index: 10; overflow-y: auto; display: none;
+      background: rgba(23,23,27,.97); border: 1px solid var(--line);
+      border-radius: 22px; padding: 10px 16px;
+    }
+    #searchResults.show { display: block; }
+    .hit-row { border-bottom: 1px solid var(--line); }
+    .hit-row:last-child { border-bottom: none; }
+    .hit-row button {
+      display: block; width: 100%; text-align: left; font: inherit;
+      background: none; border: none; color: var(--ink); cursor: pointer;
+      padding: 20px 10px;
+    }
+    .hit-row .nm { display: block; font-size: 32px; font-weight: 700; }
+    .hit-row .nm b { color: var(--primary); font-weight: 700; }
+    .hit-row .crumb { display: block; font-size: 26px; line-height: 1.35; color: var(--muted); margin-top: 6px; }
+    .hit-none { font-size: 30px; color: var(--muted); padding: 30px 10px; }
     #stage { position: relative; flex: 1; overflow: hidden; }
     #stage svg { width: 100%; height: 100%; display: block; }
 
@@ -287,11 +335,24 @@
       <div id="topbar">
         <img class="logo" src="assets/tf-logo.svg" alt="Tokenomics Foundation" />
         <div class="spacer"></div>
+        <button class="kbtn" id="searchBtn">Search</button>
         <button class="kbtn" id="recenterBtn">⌂ Recenter</button>
         <button class="kbtn" id="homeBtn">Home</button>
       </div>
+      <div id="guides">
+        <span class="glabel">Guides:</span>
+        <button class="kbtn gbtn" data-node="Quantization" style="--gc:#5b8cff">Quantization</button>
+        <button class="kbtn gbtn" data-node="Caching" style="--gc:#b98cff">Caching</button>
+        <button class="kbtn gbtn" data-node="Value Categorization" style="--gc:#ff6fa4">Value Categorization</button>
+      </div>
+      <div id="searchbar">
+        <input id="searchInput" type="text" placeholder="Type to search terms, paths, descriptions" autocomplete="off" spellcheck="false" />
+        <span id="searchCount"></span>
+        <button class="kbtn" id="searchClose">Close</button>
+      </div>
       <div id="stage">
         <svg></svg>
+        <div id="searchResults"></div>
         <div id="card">
           <button class="close" id="cardClose">✕</button>
           <h3 id="cardTitle"></h3>
@@ -674,6 +735,132 @@
       bumpIdle();
     });
 
+    /* ---- node index: path strings + searchable text (built at ingest) ---- */
+    let TERMS = [];
+    function buildIndex() {
+      TERMS = [];
+      (function walk(d, path) {
+        const next = d === dataRoot ? [] : path.concat(d.name);
+        const pathStr = next.join(" > ");
+        TERMS.push({ d, name: d.name, path: pathStr,
+          text: (d.name + " " + pathStr + " " + (d.description || "")).toLowerCase() });
+        (d.children || []).forEach(c => walk(c, next));
+      })(dataRoot, []);
+    }
+
+    /* ---- focus a node: single-path view, ancestors + self expanded ---- */
+    function chainTo(d) {
+      const chain = [];
+      (function find(n, acc) {
+        const next = acc.concat(n);
+        if (n === d) { chain.push(...next); return true; }
+        for (const c of (n.children || [])) if (find(c, next)) return true;
+        return false;
+      })(dataRoot, []);
+      return chain;   // [root, …, d]
+    }
+    function focusPath(d) {
+      eachData(dataRoot, n => { if (hasKids(n)) n.collapsed = true; });
+      chainTo(d).forEach(n => { n.collapsed = false; });   // ancestors + d itself
+      update();
+      showCard(d);
+    }
+    function resetView() {
+      // same state as a fresh session: branches visible, everything below folded
+      eachData(dataRoot, n => { n.collapsed = hasKids(n) && n !== dataRoot; });
+      update();
+    }
+
+    /* ---- guided mode: jump the map to a featured branch ---- */
+    const guideBtns = Array.from(document.querySelectorAll("#guides .gbtn"));
+    guideBtns.forEach(btn => btn.addEventListener("click", () => {
+      bumpIdle();
+      closeSearch();
+      if (btn.classList.contains("on")) {        // second tap = leave the guide
+        btn.classList.remove("on");
+        resetView();
+        return;
+      }
+      guideBtns.forEach(b => b.classList.remove("on"));
+      const hit = TERMS.find(t => t.name === btn.dataset.node);
+      if (!hit) return;
+      btn.classList.add("on");
+      focusPath(hit.d);
+    }));
+
+    /* ---- search: results panel, one tap per hit, no keyboard required ---- */
+    const searchBtn = document.getElementById("searchBtn");
+    const searchbar = document.getElementById("searchbar");
+    const searchInput = document.getElementById("searchInput");
+    const searchCount = document.getElementById("searchCount");
+    const searchResults = document.getElementById("searchResults");
+    function openSearch() {
+      searchbar.classList.add("show");
+      searchBtn.classList.add("on");
+      renderSearch();
+      bumpIdle();
+    }
+    function closeSearch() {
+      searchbar.classList.remove("show");
+      searchBtn.classList.remove("on");
+      searchResults.classList.remove("show");
+      searchInput.value = "";
+      searchCount.textContent = "";
+    }
+    searchBtn.addEventListener("click", () => {
+      searchbar.classList.contains("show") ? closeSearch() : openSearch();
+    });
+    document.getElementById("searchClose").addEventListener("click", () => { closeSearch(); bumpIdle(); });
+    searchInput.addEventListener("input", () => { renderSearch(); bumpIdle(); });
+    searchInput.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSearch(); });
+
+    function escHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+    function renderSearch() {
+      const q = searchInput.value.trim().toLowerCase();
+      if (!q) {
+        searchResults.classList.remove("show");
+        searchCount.textContent = "";
+        return;
+      }
+      const hits = TERMS
+        .map(t => {
+          const nl = t.name.toLowerCase();
+          const score = nl.startsWith(q) ? 0 : nl.includes(q) ? 1 : t.text.indexOf(q) >= 0 ? 2 : -1;
+          return { t, score };
+        })
+        .filter(h => h.score >= 0)
+        .sort((a, b) => a.score - b.score || a.t.name.length - b.t.name.length)
+        .slice(0, 60);
+      searchCount.textContent = hits.length + (hits.length === 1 ? " match" : " matches");
+      if (!hits.length) {
+        searchResults.innerHTML = '<div class="hit-none">Nothing matches &ldquo;' + escHtml(searchInput.value) + '&rdquo;.</div>';
+        searchResults.classList.add("show");
+        return;
+      }
+      searchResults.innerHTML = hits.map(({ t }) => {
+        const i = t.name.toLowerCase().indexOf(q);
+        const nm = i >= 0
+          ? escHtml(t.name.slice(0, i)) + "<b>" + escHtml(t.name.slice(i, i + q.length)) + "</b>" + escHtml(t.name.slice(i + q.length))
+          : escHtml(t.name);
+        return '<div class="hit-row"><button data-id="' + keyOf(t.d) + '">' +
+          '<span class="nm">' + nm + "</span>" +
+          '<span class="crumb">' + escHtml(t.path) + "</span></button></div>";
+      }).join("");
+      searchResults.classList.add("show");
+    }
+    searchResults.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-id]");
+      if (!btn) return;
+      const t = TERMS.find(x => keyOf(x.d) === btn.dataset.id);
+      if (!t) return;
+      closeSearch();
+      guideBtns.forEach(b => b.classList.remove("on"));
+      focusPath(t.d);
+      bumpIdle();
+    });
+
     /* ---- fit the list into the stage ---- */
     let fitTimer = null;
     function fitSoon() { clearTimeout(fitTimer); fitTimer = setTimeout(fit, DUR + 30); }
@@ -768,6 +955,9 @@
       card.classList.remove("show");
       hideToki();
       closeTut();
+      closeSearch();
+      guideBtns.forEach(b => b.classList.remove("on"));
+      if (dataRoot) resetView();          // next session starts from the top level
       show("cover");
       startCoverViz();
     }
@@ -824,6 +1014,7 @@
       eachData(dataRoot, d => { if (d.children && d.children.length) d.collapsed = true; });
       dataRoot.collapsed = false;
       buildColorMap();
+      buildIndex();
       initSvg();
       startCoverViz();
       window.addEventListener("resize", () => { if (screen === "cover") startCoverViz(); else fit(); });
