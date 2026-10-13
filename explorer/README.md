@@ -37,8 +37,8 @@ tools could be running on someone's laptop or in a data center.
                  │   MCP tools  ── search_concepts / get_concept /                │
                  │                 list_branches / list_kpis                      │
                  │        ▼                                                       │
-                 │   pinned data/v0.0.2/tokenomics_mindmap.yaml (read-only,       │
-                 │   in memory: 823 terms, BM25 search, slugs shared with         │
+                 │   pinned data/v0.0.3/tokenomics_mindmap.yaml (read-only,       │
+                 │   in memory: 827 terms, BM25 search, slugs shared with         │
                  │   terminology.html so links line up)                           │
                  └────────────────────────────────────────────────────────────────┘
 ```

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Tokenomics mind map MCP server + minimal chat explorer (host: agent@, port 8789).
 
-Wraps the pinned mind map v0.0.2 (same file the :8788 terminology demo serves)
+Wraps the pinned mind map v0.0.3 (same file the :8788 terminology demo serves)
 as an MCP server, per the Definitions WG Sprint 2 discussion (2026-09-29):
 an agent takes a plain-language description and places it in the map
 (breadcrumb + neighbours), linking to the glossary page for each term.
@@ -36,7 +36,7 @@ from starlette.requests import Request
 from starlette.responses import FileResponse, JSONResponse, Response
 
 ROOT = Path(__file__).resolve().parent
-DATA_VERSION = "v0.0.2"
+DATA_VERSION = "v0.0.3"
 def _find(rel: str) -> Path:
     """Look in the app dir, then one level up: the standalone host demo
     vendors data/ and assets/ inside explorer/, the repo copy shares the

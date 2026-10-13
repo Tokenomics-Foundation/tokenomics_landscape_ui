@@ -2,7 +2,7 @@
 <!--
   Tokenomics Terminology: two views (Glossary / KPIs) over one versioned mindmap YAML.
   =====================================================================
-  DATA: reads a PINNED version of tokenomics_mindmap.yaml (data/v0.0.2/...).
+  DATA: reads a PINNED version of tokenomics_mindmap.yaml (data/v0.0.3/...).
         Override with ?data=<url> for local review of an unreleased YAML.
         The tokenomics_mindmap repo is only ever referenced by named version.
   DEEP LINKS: no query strings in links; clean paths, host rewrites them to
@@ -135,7 +135,7 @@
      file for all four forms; the slug is read from the path.
      Opened from file:// (network-share review), links degrade to #<slug>
      hashes and the toggle switches mode in place. */
-  var DATA_VERSION = "v0.0.2";
+  var DATA_VERSION = "v0.0.3";
   var pathname = location.pathname.replace(/\/+$/, "");
   var isFile = location.protocol === "file:";
   var pm = pathname.match(/^(.*?)\/(terminology|kpi)(?:\/([^/]+))?$/);
