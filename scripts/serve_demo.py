@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Tokenomics terminology demo server (host: agent@, port 8788).
 
-Serves the pinned v0.0.2 terminology/kiosk demo with clean-path rewrites:
+Serves the pinned v0.0.3 terminology/kiosk demo with clean-path rewrites:
     /                     -> terminology.html (glossary)
     /terminology          -> terminology.html
     /terminology/<slug>   -> terminology.html (page reads slug from path)
