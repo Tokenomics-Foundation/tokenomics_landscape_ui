@@ -125,11 +125,14 @@
     #coverCta .ctaTxt .l1 { font-size: 34px; font-weight: 700; color: var(--ink); }
     #coverCta .ctaTxt .l2 { font-size: 30px; color: var(--primary); margin-top: 6px; word-break: break-all; }
     /* ---------- map screen ---------- */
+    /* Low-mounted screen: the control bars (topbar, guides, search) sit at
+       the BOTTOM within reach; legend, definition card, and tutorial sit at
+       the TOP near eye level. DOM order matches the visual order. */
     #mapscr { background: var(--bg); }
     #topbar {
       display: flex; align-items: center; gap: 14px;
-      padding: 16px 22px;
-      border-bottom: 1px solid var(--line);
+      padding: 16px 22px 22px;
+      border-top: 1px solid var(--line);
       background: var(--panel);
       flex: 0 0 auto;
     }
@@ -148,7 +151,7 @@
     #guides {
       display: flex; align-items: center; gap: 14px;
       padding: 12px 22px; background: var(--panel);
-      border-bottom: 1px solid var(--line); flex: 0 0 auto;
+      border-top: 1px solid var(--line); flex: 0 0 auto;
       overflow-x: auto;
     }
     #guides .glabel { font-size: 26px; color: var(--muted); flex: 0 0 auto; }
@@ -159,12 +162,12 @@
       margin-right: 12px; vertical-align: 1px;
     }
     .gbtn.on { background: var(--gc); border-color: var(--gc); color: #fff; }
-    /* search: opens as a row of buttons under the topbar (no keyboard here) */
+    /* search: opens as a row above the guides (no keyboard here) */
     #searchBtn { font-weight: 700; }
     #searchbar {
       display: none; align-items: center; gap: 14px;
       padding: 14px 22px; background: var(--panel);
-      border-bottom: 1px solid var(--line); flex: 0 0 auto;
+      border-top: 1px solid var(--line); flex: 0 0 auto;
     }
     #searchbar.show { display: flex; }
     #searchInput {
@@ -209,8 +212,8 @@
     #legend {
       flex: 0 0 auto;
       display: flex; justify-content: center; gap: 46px;
-      padding: 20px 0 30px;
-      border-top: 1px solid var(--line);
+      padding: 24px 0 20px;
+      border-bottom: 1px solid var(--line);
       background: var(--panel);
       font-size: 28px; color: var(--muted);
     }
@@ -221,7 +224,7 @@
 
     /* node definition card: persistent after first touch */
     #card {
-      position: absolute; left: 24px; right: 24px; bottom: 24px;
+      position: absolute; left: 24px; right: 24px; top: 24px;
       background: rgba(23,23,27,.97);
       border: 1px solid var(--line);
       border-radius: 22px;
@@ -246,13 +249,13 @@
     #tut {
       position: absolute; inset: 0; z-index: 12;
       display: none;
-      align-items: flex-end; justify-content: center;
+      align-items: flex-start; justify-content: center;
       background: rgba(10,11,15,.42);
     }
     #tut.show { display: flex; }
     #tutCard {
       width: calc(100% - 48px);
-      margin-bottom: 48px;
+      margin-top: 102px;                      /* clears the legend: tip 1 explains its colors */
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 26px;
@@ -277,7 +280,7 @@
 
     /* idle toast */
     #idleHint {
-      position: absolute; top: 90px; left: 0; right: 0; text-align: center;
+      position: absolute; bottom: 60px; left: 0; right: 0; text-align: center;
       z-index: 9; display: none;
     }
     #idleHint.show { display: block; }
@@ -353,23 +356,10 @@
 
     <!-- MAP -->
     <div class="screen" id="mapscr">
-      <div id="topbar">
-        <img class="logo" src="assets/tf-logo.svg" alt="Tokenomics Foundation" />
-        <div class="spacer"></div>
-        <button class="kbtn" id="searchBtn">Search</button>
-        <button class="kbtn" id="recenterBtn">⌂ Recenter</button>
-        <button class="kbtn" id="homeBtn">Home</button>
-      </div>
-      <div id="guides">
-        <span class="glabel">Start here:</span>
-        <button class="kbtn gbtn" data-node="Quantization" style="--gc:#5b8cff">Quantization</button>
-        <button class="kbtn gbtn" data-node="Caching" style="--gc:#b98cff">Caching</button>
-        <button class="kbtn gbtn" data-node="Value Categorization" style="--gc:#ff6fa4">Value Categorization</button>
-      </div>
-      <div id="searchbar">
-        <input id="searchInput" type="text" placeholder="Type to search terms, paths, descriptions" autocomplete="off" spellcheck="false" />
-        <span id="searchCount"></span>
-        <button class="kbtn" id="searchClose">Close</button>
+      <div id="legend">
+        <span><i style="background:var(--gen)"></i>Production</span>
+        <span><i style="background:var(--con)"></i>Consumption</span>
+        <span><i style="background:var(--val)"></i>Value</span>
       </div>
       <div id="stage">
         <svg></svg>
@@ -383,10 +373,23 @@
         </div>
         <div id="idleHint"><span>Returning to start… touch anywhere to cancel</span></div>
       </div>
-      <div id="legend">
-        <span><i style="background:var(--gen)"></i>Production</span>
-        <span><i style="background:var(--con)"></i>Consumption</span>
-        <span><i style="background:var(--val)"></i>Value</span>
+      <div id="searchbar">
+        <input id="searchInput" type="text" placeholder="Type to search terms, paths, descriptions" autocomplete="off" spellcheck="false" />
+        <span id="searchCount"></span>
+        <button class="kbtn" id="searchClose">Close</button>
+      </div>
+      <div id="guides">
+        <span class="glabel">Start here:</span>
+        <button class="kbtn gbtn" data-node="Quantization" style="--gc:#5b8cff">Quantization</button>
+        <button class="kbtn gbtn" data-node="Caching" style="--gc:#b98cff">Caching</button>
+        <button class="kbtn gbtn" data-node="Value Categorization" style="--gc:#ff6fa4">Value Categorization</button>
+      </div>
+      <div id="topbar">
+        <img class="logo" src="assets/tf-logo.svg" alt="Tokenomics Foundation" />
+        <div class="spacer"></div>
+        <button class="kbtn" id="searchBtn">Search</button>
+        <button class="kbtn" id="recenterBtn">⌂ Recenter</button>
+        <button class="kbtn" id="homeBtn">Home</button>
       </div>
       <div id="tut">
         <div id="tutCard">
@@ -889,10 +892,11 @@
       if (screen !== "map") return;   // stage is 0x0 while the cover is up; NaN transforms otherwise
       if (!allRows.length) return;
       const w = stage.clientWidth, h = stage.clientHeight;
-      const bottomPad = card.classList.contains("show") ? Math.min(h * 0.46, card.offsetHeight + 50) : 0;
-      const availH = h - bottomPad;
+      // card sits at the top of the stage: start the list below it
+      const topPad = card.classList.contains("show") ? Math.min(h * 0.46, card.offsetHeight + 50) : 0;
+      const availH = h - topPad;
       const k = Math.max(0.55, Math.min(1, availH / (allRows.totalH + 80)));
-      const ty = Math.max(20, (availH - allRows.totalH * k) / 2) ;
+      const ty = topPad + Math.max(20, (availH - allRows.totalH * k) / 2) ;
       const tx = (w - 1080 * k) / 2;   // horizontal centering only
       svg.transition().duration(420).call(zoom.transform, d3.zoomIdentity.translate(tx, Math.max(10, ty)).scale(k));
     }
@@ -900,7 +904,7 @@
     /* ---- tutorial ---- */
     const TUT = [
       { big: "One map, three branches", body: "The map shows the whole economics of AI tokens: Production (blue), Consumption (purple), and Value (pink)." },
-      { big: "Tap a concept to go deeper", body: "Children open right in the list. The definition panel appears at the bottom and stays up as you explore." },
+      { big: "Tap a concept to go deeper", body: "Children open right in the list. The definition panel appears at the top and stays up as you explore." },
       { big: "Swipe and pinch", body: "Drag to pan, pinch to zoom. Ask any of us if you want to go deeper on a concept." }
     ];
     let tutIdx = 0;
